@@ -83,15 +83,15 @@ function Landing() {
               you publish.
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-              Drop in an MP3 or WAV. MicCheck AI runs the same checks a mastering engineer would and
-              hands back a plain-English verdict in seconds.
+              Record straight from your microphone. MicCheck AI runs the same checks a mastering
+              engineer would and hands back a plain-English verdict in seconds.
             </p>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
               <Link
                 to="/workspace"
                 className="rounded-xl bg-gradient-primary px-7 py-3.5 font-semibold text-primary-foreground shadow-glow transition-transform hover:-translate-y-0.5"
               >
-                Try for free — upload a file
+                Start Live Check
               </Link>
               <a
                 href="#pricing"
