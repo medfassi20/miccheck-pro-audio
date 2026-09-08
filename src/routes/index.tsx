@@ -121,7 +121,7 @@ function Landing() {
 
         <section id="features" className="mx-auto max-w-6xl px-5 py-20">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold md:text-4xl">Every check, before the upload</h2>
+            <h2 className="text-3xl font-bold md:text-4xl">Every check, before you publish</h2>
             <p className="mt-3 text-muted-foreground">
               Four passes over your waveform, one honest answer.
             </p>
