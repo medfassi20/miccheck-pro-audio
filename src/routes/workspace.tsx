@@ -12,20 +12,22 @@ export const Route = createFileRoute("/workspace")({
   component: Workspace,
   head: () => ({
     meta: [
-      { title: "Workspace — Analyze your audio | MicCheck AI" },
+      { title: "Live Voice Quality Audit Workspace | MicCheck AI" },
       {
         name: "description",
         content:
-          "Upload an MP3 or WAV and get an instant audit of noise, clipping and loudness before you publish.",
+          "Record your voice or upload a file and get an instant audit of SNR, voice activity, true peak and LUFS loudness.",
       },
-      { property: "og:title", content: "Workspace — Analyze your audio | MicCheck AI" },
+      { property: "og:title", content: "Live Voice Quality Audit Workspace | MicCheck AI" },
       {
         property: "og:description",
-        content: "Instant audio quality audit: SNR, voice activity, true peak and LUFS.",
+        content: "Instant voice quality audit: SNR, voice activity, true peak and LUFS.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://miccheck-pro-audio.lovable.app/workspace" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [{ rel: "canonical", href: "https://miccheck-pro-audio.lovable.app/workspace" }],
   }),
 });
 
