@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Check, Sparkles } from "lucide-react";
 
 const tiers = [
@@ -32,7 +33,14 @@ const tiers = [
   },
 ];
 
-export function Pricing({ onCheckout }: { onCheckout?: (tier: string) => void }) {
+export function Pricing() {
+  const [notice, setNotice] = useState<string | null>(null);
+  const onCheckout = (tier: string) =>
+    setNotice(
+      tier === "Pro"
+        ? "Opening Lemon Squeezy checkout… (demo — no payment is taken)"
+        : "You're on the Free tier — head to the workspace and upload a file.",
+    );
   return (
     <section id="pricing" className="mx-auto max-w-6xl px-5 py-24">
       <div className="mx-auto max-w-2xl text-center">
