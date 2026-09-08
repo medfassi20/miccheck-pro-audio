@@ -8,20 +8,37 @@ export const Route = createFileRoute("/")({
   component: Landing,
   head: () => ({
     meta: [
-      { title: "MicCheck AI — Audio quality checks before you publish" },
+      { title: "MicCheck AI - AI Audio Quality Checker & Voice Tester" },
       {
         name: "description",
         content:
-          "Instantly analyze your audio for background noise, clipping and loudness. Get a publish-ready verdict in seconds.",
+          "Instantly check your voice recordings for background noise, SNR, VAD, and LUFS loudness before publishing. Free online audio auditor for creators.",
       },
-      { property: "og:title", content: "MicCheck AI — Audio quality checks before you publish" },
+      { property: "og:title", content: "MicCheck AI - AI Audio Quality Checker & Voice Tester" },
       {
         property: "og:description",
         content:
-          "AI audio audits for podcasters, creators and voice-over artists: SNR, clipping and LUFS in seconds.",
+          "Instantly check your voice recordings for background noise, SNR, VAD, and LUFS loudness before publishing. Free online audio auditor for creators.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://miccheck-pro-audio.lovable.app/" },
       { name: "twitter:card", content: "summary_large_image" },
+    ],
+    links: [{ rel: "canonical", href: "https://miccheck-pro-audio.lovable.app/" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          name: "MicCheck AI",
+          applicationCategory: "MultimediaApplication",
+          operatingSystem: "Web",
+          description:
+            "AI audio checker that analyzes voice recordings for background noise, SNR, voice activity, clipping and LUFS loudness.",
+          offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+        }),
+      },
     ],
   }),
 });
