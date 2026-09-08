@@ -3,7 +3,7 @@ import { useCallback, useState } from "react";
 import { Sparkles, Zap } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { VoiceRecorder } from "@/components/voice-recorder";
+import { UploadZone } from "@/components/upload-zone";
 import { Analyzing } from "@/components/analyzing";
 import { AuditReport } from "@/components/audit-report";
 import { buildReport, type Report } from "@/lib/analysis";
@@ -12,26 +12,24 @@ export const Route = createFileRoute("/workspace")({
   component: Workspace,
   head: () => ({
     meta: [
-      { title: "Live Voice Check — Record & Audit Your Audio | MicCheck AI" },
+      { title: "Workspace — Analyze your audio | MicCheck AI" },
       {
         name: "description",
         content:
-          "Record straight from your microphone and get an instant audit of background noise, SNR, voice activity, clipping and LUFS loudness.",
+          "Upload an MP3 or WAV and get an instant audit of noise, clipping and loudness before you publish.",
       },
-      { property: "og:title", content: "Live Voice Check — Record & Audit Your Audio | MicCheck AI" },
+      { property: "og:title", content: "Workspace — Analyze your audio | MicCheck AI" },
       {
         property: "og:description",
-        content: "Instant voice quality audit: SNR, voice activity, true peak and LUFS.",
+        content: "Instant audio quality audit: SNR, voice activity, true peak and LUFS.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
-    links: [{ rel: "canonical", href: "https://miccheck-pro-audio.lovable.app/workspace" }],
   }),
 });
 
 type Stage = { kind: "idle" } | { kind: "analyzing"; file: string; size: number } | { kind: "done"; report: Report };
-
 
 function Workspace() {
   const [stage, setStage] = useState<Stage>({ kind: "idle" });
@@ -75,10 +73,11 @@ function Workspace() {
         </div>
 
         {stage.kind === "idle" && (
-          <VoiceRecorder
-            disabled={remaining === 0}
-            onComplete={(label, seed) =>
-              remaining > 0 ? setStage({ kind: "analyzing", file: label, size: seed }) : undefined
+          <UploadZone
+            onFile={(name, size) =>
+              remaining > 0
+                ? setStage({ kind: "analyzing", file: name, size })
+                : undefined
             }
           />
         )}
