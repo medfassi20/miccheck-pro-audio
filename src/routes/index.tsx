@@ -142,7 +142,55 @@ function Landing() {
           </div>
         </section>
 
+        <section id="how-it-works" className="mx-auto max-w-4xl px-5 py-20">
+          <h2 className="text-3xl font-bold md:text-4xl">
+            How the real-time AI audio checker works
+          </h2>
+          <p className="mt-4 text-muted-foreground">
+            MicCheck AI is a free online voice quality audit you run from the browser. Press record,
+            speak for fifteen seconds, and the analyzer listens to the live waveform from your
+            microphone and grades it against the specs podcast and voice-over platforms expect. Four
+            measurements decide whether a take is clean or needs re-recording.
+          </p>
+
+          <div className="mt-10 space-y-8">
+            <article>
+              <h3 className="text-xl font-semibold">SNR — signal-to-noise ratio</h3>
+              <p className="mt-2 text-muted-foreground">
+                SNR compares the level of your voice with the level of the room behind it: fans,
+                traffic, air conditioning, computer hum. Anything above 20 dB reads as clean;
+                below that, listeners hear the room as much as they hear you.
+              </p>
+            </article>
+            <article>
+              <h3 className="text-xl font-semibold">VAD — voice activity detection</h3>
+              <p className="mt-2 text-muted-foreground">
+                Voice activity detection separates speech from silence across the recording, so you
+                can see whether the take drags with dead air or rushes without breathing room. It
+                also tells the noise measurement which parts of the file are pure room tone.
+              </p>
+            </article>
+            <article>
+              <h3 className="text-xl font-semibold">Peak level & clipping</h3>
+              <p className="mt-2 text-muted-foreground">
+                True-peak detection catches moments where the signal slams into the ceiling of the
+                digital scale and distorts — usually plosives or a laugh. Keeping peaks at or below
+                -1.0 dBFS leaves headroom for mastering and lossy encoding.
+              </p>
+            </article>
+            <article>
+              <h3 className="text-xl font-semibold">Loudness — LUFS</h3>
+              <p className="mt-2 text-muted-foreground">
+                Integrated loudness measures perceived volume across the whole take. The podcast
+                target is around -16 LUFS; drift far from it and your episode is noticeably quieter
+                or louder than everything else in a listener&apos;s feed.
+              </p>
+            </article>
+          </div>
+        </section>
+
         <Pricing />
+
       </main>
 
       <SiteFooter />
