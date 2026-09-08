@@ -12,7 +12,7 @@ export function SiteHeader() {
           <span className="font-display text-lg font-semibold">MicCheck AI</span>
         </Link>
         <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
-          <a href="/#features" className="transition-colors hover:text-foreground">
+          <a href="/#how-it-works" className="transition-colors hover:text-foreground">
             How it works
           </a>
           <a href="/#pricing" className="transition-colors hover:text-foreground">
@@ -23,7 +23,7 @@ export function SiteHeader() {
           to="/workspace"
           className="rounded-xl bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:-translate-y-0.5"
         >
-          Try for free
+          Start Live Check
         </Link>
       </div>
     </header>
