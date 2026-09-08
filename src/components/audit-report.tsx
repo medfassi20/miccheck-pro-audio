@@ -93,7 +93,7 @@ export function AuditReport({ report, onReset }: { report: Report; onReset: () =
 
       <button
         onClick={onReset}
-        className={`inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition-transform hover:-translate-yically-0.5 hover:-translate-y-0.5 ${
+        className={`inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition-transform hover:-translate-y-0.5 ${
           pass
             ? "border border-border bg-secondary text-secondary-foreground"
             : "bg-destructive text-destructive-foreground shadow-glow ring-2 ring-destructive/40"
