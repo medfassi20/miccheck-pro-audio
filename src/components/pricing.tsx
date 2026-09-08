@@ -92,6 +92,11 @@ export function Pricing() {
           </div>
         ))}
       </div>
+      {notice && (
+        <p className="mt-6 text-center text-sm text-accent" role="status">
+          {notice}
+        </p>
+      )}
     </section>
   );
 }
