@@ -75,11 +75,10 @@ function Workspace() {
         </div>
 
         {stage.kind === "idle" && (
-          <UploadZone
-            onFile={(name, size) =>
-              remaining > 0
-                ? setStage({ kind: "analyzing", file: name, size })
-                : undefined
+          <VoiceRecorder
+            disabled={remaining === 0}
+            onComplete={(label, seed) =>
+              remaining > 0 ? setStage({ kind: "analyzing", file: label, size: seed }) : undefined
             }
           />
         )}
