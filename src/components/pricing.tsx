@@ -28,19 +28,30 @@ const tiers = [
       "Batch uploads & export to PDF",
       "Priority processing",
     ],
-    cta: "Subscribe with Lemon Squeezy",
+    cta: "Subscribe with Gumroad",
     highlight: true,
   },
 ];
 
 export function Pricing() {
   const [notice, setNotice] = useState<string | null>(null);
-  const onCheckout = (tier: string) =>
-    setNotice(
-      tier === "Pro"
-        ? "Opening Lemon Squeezy checkout… (demo — no payment is taken)"
-        : "You're on the Free tier — head to the workspace and upload a file.",
-    );
+
+  const onCheckout = (tier: string) => {
+    if (tier === "Pro") {
+      setNotice("Redirecting to Gumroad secure checkout…");
+      // Remplace par ton lien de paiement direct Gumroad configuré
+      window.location.href = "https://miccheckai.gumroad.com/l/pro";
+    } else {
+      setNotice("You're on the Free tier — head to the workspace and upload a file.");
+    }
+  };
+
+  const handleTryFreeReset = () => {
+    // Réinitialise le compteur d'essais gratuits dans le localStorage
+    localStorage.setItem("miccheck_free_analyses", "3");
+    setNotice("Free credits reset! You have 3 analyses remaining.");
+  };
+
   return (
     <section id="pricing" className="mx-auto max-w-6xl px-5 py-24">
       <div className="mx-auto max-w-2xl text-center">
@@ -48,6 +59,12 @@ export function Pricing() {
         <p className="mt-3 text-muted-foreground">
           Start free. Upgrade when checking your audio becomes part of the routine.
         </p>
+        <button
+          onClick={handleTryFreeReset}
+          className="mt-4 text-xs text-primary underline hover:text-primary/80 transition-colors"
+        >
+          Reset free trial credits (Demo helper)
+        </button>
       </div>
 
       <div className="mt-12 grid gap-6 md:grid-cols-2">
@@ -80,7 +97,7 @@ export function Pricing() {
               ))}
             </ul>
             <button
-              onClick={() => onCheckout?.(tier.name)}
+              onClick={() => onCheckout(tier.name)}
               className={`mt-8 rounded-xl px-5 py-3 text-sm font-semibold transition-transform hover:-translate-y-0.5 ${
                 tier.highlight
                   ? "bg-gradient-primary text-primary-foreground shadow-glow"
