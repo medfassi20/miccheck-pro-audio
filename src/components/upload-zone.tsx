@@ -1,52 +1,65 @@
-import { useRef, useState } from "react";
-import { FileAudio, UploadCloud } from "lucide-react";
+import React, { useRef } from "react";
+import { Upload, FileAudio } from "lucide-react";
 
-export function UploadZone({ onFile }: { onFile: (name: string, size: number) => void }) {
-  const [dragging, setDragging] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+interface UploadZoneProps {
+  onFile: (name: string, size: number) => void;
+  disabled?: boolean;
+}
 
-  const handleFiles = (files: FileList | null) => {
-    const file = files?.[0];
-    if (!file) return;
-    onFile(file.name, file.size);
+export function UploadZone({ onFile, disabled = false }: UploadZoneProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (disabled) return;
+    const file = e.target.files?.[0];
+    if (file) {
+      onFile(file.name, file.size);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (disabled) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      onFile(file.name, file.size);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
   };
 
   return (
     <div
-      onDragOver={(e) => {
-        e.preventDefault();
-        setDragging(true);
-      }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={(e) => {
-        e.preventDefault();
-        setDragging(false);
-        handleFiles(e.dataTransfer.files);
-      }}
-      onClick={() => inputRef.current?.click()}
-      className={`group flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed px-6 py-20 text-center transition-all ${
-        dragging
-          ? "border-primary bg-primary/10 shadow-glow"
-          : "border-border glass hover:border-primary/50"
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+      onClick={() => !disabled && fileInputRef.current?.click()}
+      className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-10 text-center transition-all ${
+        disabled
+          ? "cursor-not-allowed border-border/50 bg-secondary/30 opacity-50"
+          : "cursor-pointer border-border bg-secondary/10 hover:border-primary/50 hover:bg-secondary/20"
       }`}
     >
       <input
-        ref={inputRef}
+        ref={fileInputRef}
         type="file"
-        accept="audio/mpeg,audio/wav,.mp3,.wav"
+        accept="audio/*"
+        onChange={handleFileChange}
+        disabled={disabled}
         className="hidden"
-        onChange={(e) => handleFiles(e.target.files)}
       />
-      <span className="grid size-16 place-items-center rounded-2xl bg-gradient-primary shadow-glow transition-transform group-hover:scale-105">
-        <UploadCloud className="size-8 text-primary-foreground" />
-      </span>
-      <h3 className="mt-6 text-xl font-semibold">Drop your audio file here</h3>
-      <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-        MP3 or WAV, up to 30 minutes. Nothing is published — we only read the waveform.
-      </p>
-      <div className="mt-6 flex items-center gap-2 rounded-full border border-border bg-secondary px-4 py-2 text-xs text-muted-foreground">
-        <FileAudio className="size-4" /> or click to browse your files
+      <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        {disabled ? <FileAudio className="size-6 text-muted-foreground" /> : <Upload className="size-6" />}
       </div>
+      <h3 className="text-base font-semibold">
+        {disabled ? "Free limit reached" : "Upload an audio file"}
+      </h3>
+      <p className="mt-1 text-xs text-muted-foreground">
+        {disabled
+          ? "Upgrade to Pro to upload and analyze more files"
+          : "Drag and drop your MP3, WAV, or M4A file here, or click to browse"}
+      </p>
     </div>
   );
 }
