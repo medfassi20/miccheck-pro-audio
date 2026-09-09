@@ -28,7 +28,7 @@ const tiers = [
       "Batch uploads & export to PDF",
       "Priority processing",
     ],
-    cta: "Subscribe with Gumroad",
+    cta: "Upgrade to Pro",
     highlight: true,
     href: "https://miccheckai.gumroad.com/l/pro",
   },
