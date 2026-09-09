@@ -1,148 +1,118 @@
-import { useEffect, useRef, useState } from "react";
-import { Mic, RotateCcw, Square, Play } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { Mic, Square, RefreshCw } from "lucide-react";
 
-type Props = {
-  onReady: (name: string, size: number) => void;
-  onReset: () => void;
+interface RecorderProps {
+  onReady: (fileName: string, size: number) => void;
+  onReset?: () => void;
   disabled?: boolean;
-};
+}
 
-export function Recorder({ onReady, onReset, disabled }: Props) {
-  const [state, setState] = useState<"idle" | "recording" | "recorded" | "error">("idle");
-  const [seconds, setSeconds] = useState(0);
-  const [message, setMessage] = useState<string | null>(null);
-  const recorderRef = useRef<MediaRecorder | null>(null);
+export function Recorder({ onReady, onReset, disabled = false }: RecorderProps) {
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const blobRef = useRef<Blob | null>(null);
-  const [url, setUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      recorderRef.current?.stream.getTracks().forEach((t) => t.stop());
-      if (url) URL.revokeObjectURL(url);
-    };
-  }, [url]);
-
-  const start = async () => {
-    setMessage(null);
+  const startRecording = async () => {
+    if (disabled) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const rec = new MediaRecorder(stream);
+      mediaRecorderRef.current = new MediaRecorder(stream);
       chunksRef.current = [];
-      rec.ondataavailable = (e) => e.data.size > 0 && chunksRef.current.push(e.data);
-      rec.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: rec.mimeType || "audio/webm" });
-        blobRef.current = blob;
-        setUrl(URL.createObjectURL(blob));
-        stream.getTracks().forEach((t) => t.stop());
-        setState("recorded");
+
+      mediaRecorderRef.current.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
       };
-      rec.start();
-      recorderRef.current = rec;
-      setSeconds(0);
-      setState("recording");
-      timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
-    } catch {
-      setState("error");
-      setMessage("We couldn't reach your microphone. Allow access and try again.");
+
+      mediaRecorderRef.current.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        const url = URL.createObjectURL(blob);
+        setAudioUrl(url);
+        onReady("live_recording.webm", blob.size);
+      };
+
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Microphone access error:", err);
     }
   };
 
-  const stop = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    recorderRef.current?.stop();
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
+      setIsRecording(false);
+    }
   };
 
-  const reset = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    recorderRef.current?.stream.getTracks().forEach((t) => t.stop());
-    if (url) URL.revokeObjectURL(url);
-    setUrl(null);
-    blobRef.current = null;
-    chunksRef.current = [];
-    setSeconds(0);
-    setMessage(null);
-    setState("idle");
-    onReset();
+  const handleReRecord = () => {
+    if (disabled) return;
+    setAudioUrl(null);
+    if (onReset) onReset();
   };
-
-  const analyze = () => {
-    const blob = blobRef.current;
-    if (!blob) return;
-    onReady(`live-take-${new Date().toISOString().slice(11, 19).replace(/:/g, "")}.webm`, blob.size);
-  };
-
-  const mmss = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 
   return (
-    <section className="glass rounded-3xl p-8 text-center">
-      <h2 className="text-xl font-semibold">Live voice quality audit</h2>
-      <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-        Record straight from your mic, then run the AI audio checker on the take.
-      </p>
-
-      <div className="mt-8 flex h-20 items-end justify-center gap-1.5">
-        {Array.from({ length: 44 }).map((_, i) => (
-          <span
-            key={i}
-            className={`w-1.5 rounded-full bg-gradient-primary ${
-              state === "recording" ? "animate-pulse" : "opacity-40"
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-secondary/10 p-10 text-center">
+      {!isRecording && !audioUrl && (
+        <div className="flex flex-col items-center">
+          <button
+            type="button"
+            onClick={startRecording}
+            disabled={disabled}
+            className={`flex size-16 items-center justify-center rounded-full transition-all ${
+              disabled
+                ? "cursor-not-allowed border border-border bg-secondary/40 text-muted-foreground opacity-50"
+                : "cursor-pointer bg-gradient-primary text-primary-foreground hover:scale-105"
             }`}
-            style={{
-              height: `${15 + Math.abs(Math.sin(i * 0.5 + (state === "recording" ? seconds : 0))) * 85}%`,
-              animationDelay: `${i * 35}ms`,
-            }}
-          />
-        ))}
-      </div>
-
-      <p className="mt-4 font-mono text-2xl font-semibold">{mmss}</p>
-
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-        {state !== "recording" && state !== "recorded" && (
-          <button
-            onClick={start}
-            disabled={disabled}
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-primary px-6 py-3 font-semibold text-primary-foreground shadow-glow transition-transform hover:-translate-y-0.5 disabled:opacity-50"
+            title={disabled ? "Free limit reached" : "Start recording"}
           >
-            <Mic className="size-4" /> Start Recording
+            <Mic className="size-7" />
           </button>
-        )}
-
-        {state === "recording" && (
-          <button
-            onClick={stop}
-            className="inline-flex items-center gap-2 rounded-xl bg-destructive px-6 py-3 font-semibold text-destructive-foreground transition-transform hover:-translate-y-0.5"
-          >
-            <Square className="size-4" /> Stop
-          </button>
-        )}
-
-        {state === "recorded" && (
-          <button
-            onClick={analyze}
-            disabled={disabled}
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-primary px-6 py-3 font-semibold text-primary-foreground shadow-glow transition-transform hover:-translate-y-0.5 disabled:opacity-50"
-          >
-            <Play className="size-4" /> Analyze this take
-          </button>
-        )}
-
-        <button
-          onClick={reset}
-          disabled={state === "idle"}
-          className="inline-flex items-center gap-2 rounded-xl border border-border bg-secondary px-6 py-3 font-semibold text-secondary-foreground transition-transform hover:-translate-y-0.5 disabled:opacity-40"
-        >
-          <RotateCcw className="size-4" /> Re-record
-        </button>
-      </div>
-
-      {url && state === "recorded" && (
-        <audio controls src={url} className="mx-auto mt-6 w-full max-w-md" />
+          <p className="mt-4 text-sm font-semibold">
+            {disabled ? "Free limit reached" : "Click to start recording"}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {disabled
+              ? "Upgrade to Pro to keep recording live audio"
+              : "Allow microphone access when prompted"}
+          </p>
+        </div>
       )}
-      {message && <p className="mt-4 text-sm text-destructive">{message}</p>}
-    </section>
+
+      {isRecording && (
+        <div className="flex flex-col items-center">
+          <button
+            type="button"
+            onClick={stopRecording}
+            className="flex size-16 cursor-pointer items-center justify-center rounded-full bg-destructive text-destructive-foreground animate-pulse"
+            title="Stop recording"
+          >
+            <Square className="size-7" />
+          </button>
+          <p className="mt-4 text-sm font-semibold text-destructive">Recording in progress...</p>
+          <p className="mt-1 text-xs text-muted-foreground">Click the button above to finish</p>
+        </div>
+      )}
+
+      {audioUrl && !isRecording && (
+        <div className="flex flex-col items-center gap-4">
+          <audio src={audioUrl} controls className="max-w-xs" />
+          <button
+            type="button"
+            onClick={handleReRecord}
+            disabled={disabled}
+            className={`inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-xs font-semibold transition-colors ${
+              disabled
+                ? "cursor-not-allowed bg-secondary/30 text-muted-foreground opacity-50"
+                : "cursor-pointer bg-secondary hover:bg-secondary/80 text-foreground"
+            }`}
+            title={disabled ? "Free limit reached" : "Re-record audio"}
+          >
+            <RefreshCw className="size-3.5" /> Re-record
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
