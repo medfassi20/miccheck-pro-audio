@@ -36,7 +36,14 @@ type Stage = { kind: "idle" } | { kind: "analyzing"; file: string; size: number 
 
 function Workspace() {
   const [stage, setStage] = useState<Stage>({ kind: "idle" });
-  const [remaining, setRemaining] = useState(3);
+  
+  // Initialisation paresseuse sécurisée avec localStorage
+  const [remaining, setRemaining] = useState<number>(() => {
+    if (typeof window === "undefined") return 3;
+    const saved = localStorage.getItem("miccheck_free_credits");
+    return saved !== null ? parseInt(saved, 10) : 3;
+  });
+
   const [mode, setMode] = useState<"record" | "upload">("record");
 
   const finish = useCallback(() => {
@@ -44,11 +51,17 @@ function Workspace() {
       if (s.kind !== "analyzing") return s;
       return { kind: "done", report: buildReport(s.file, s.size) };
     });
-    setRemaining((r) => Math.max(0, r - 1));
   }, []);
 
   const startAnalysis = (name: string, size: number) => {
-    if (remaining > 0) setStage({ kind: "analyzing", file: name, size });
+    if (remaining <= 0) return;
+
+    // Décrémente et sauvegarde immédiatement dans le localStorage au démarrage de l'analyse
+    const nextCount = remaining - 1;
+    setRemaining(nextCount);
+    localStorage.setItem("miccheck_free_credits", nextCount.toString());
+
+    setStage({ kind: "analyzing", file: name, size });
   };
 
   return (
@@ -74,6 +87,8 @@ function Workspace() {
           </p>
           <a
             href="/#pricing"
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground"
           >
             <Sparkles className="size-3.5" /> Upgrade to Pro for unlimited checks
@@ -104,7 +119,11 @@ function Workspace() {
                 disabled={remaining === 0}
               />
             ) : (
-              <UploadZone onFile={startAnalysis} />
+              <UploadZone 
+                onFile={(name, size) => {
+                  if (remaining > 0) startAnalysis(name, size);
+                }} 
+              />
             )}
           </>
         )}
