@@ -54,16 +54,22 @@ function Workspace() {
   }, []);
 
   const startAnalysis = (name: string, size: number) => {
-    if (remaining <= 0) return;
+    // On relit directement le localStorage pour être sûr d'avoir la valeur fraîche (bloque le retour en arrière / triche)
+    const currentSaved = localStorage.getItem("miccheck_free_credits");
+    const actualRemaining = currentSaved !== null ? parseInt(currentSaved, 10) : remaining;
 
-    // Décrémente et sauvegarde immédiatement dans le localStorage au démarrage de l'analyse
-    const nextCount = remaining - 1;
+    if (actualRemaining <= 0) {
+      setRemaining(0);
+      return;
+    }
+
+    const nextCount = actualRemaining - 1;
     setRemaining(nextCount);
     localStorage.setItem("miccheck_free_credits", nextCount.toString());
 
     setStage({ kind: "analyzing", file: name, size });
   };
-
+  
   return (
     <div className="min-h-screen">
       <SiteHeader />
