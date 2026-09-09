@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Sparkles, Zap } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -36,15 +36,20 @@ type Stage = { kind: "idle" } | { kind: "analyzing"; file: string; size: number 
 
 function Workspace() {
   const [stage, setStage] = useState<Stage>({ kind: "idle" });
-  
-  // Initialisation paresseuse sécurisée avec localStorage
-  const [remaining, setRemaining] = useState<number>(() => {
-    if (typeof window === "undefined") return 3;
-    const saved = localStorage.getItem("miccheck_free_credits");
-    return saved !== null ? parseInt(saved, 10) : 3;
-  });
-
+  const [remaining, setRemaining] = useState<number>(3);
+  const [isMounted, setIsMounted] = useState(false);
   const [mode, setMode] = useState<"record" | "upload">("record");
+
+  // Synchronisation stricte au montage côté client
+  useEffect(() => {
+    const saved = localStorage.getItem("miccheck_free_credits");
+    if (saved !== null) {
+      setRemaining(parseInt(saved, 10));
+    } else {
+      localStorage.setItem("miccheck_free_credits", "3");
+    }
+    setIsMounted(true);
+  }, []);
 
   const finish = useCallback(() => {
     setStage((s) => {
@@ -54,7 +59,6 @@ function Workspace() {
   }, []);
 
   const startAnalysis = (name: string, size: number) => {
-    // On relit directement le localStorage pour être sûr d'avoir la valeur fraîche (bloque le retour en arrière / triche)
     const currentSaved = localStorage.getItem("miccheck_free_credits");
     const actualRemaining = currentSaved !== null ? parseInt(currentSaved, 10) : remaining;
 
@@ -69,7 +73,7 @@ function Workspace() {
 
     setStage({ kind: "analyzing", file: name, size });
   };
-  
+
   return (
     <div className="min-h-screen">
       <SiteHeader />
@@ -88,7 +92,9 @@ function Workspace() {
 
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-4">
           <p className="text-sm">
-            <span className="font-semibold">{remaining} free analyses remaining</span>
+            <span className="font-semibold">
+              {isMounted ? remaining : "..."} free analyses remaining
+            </span>
             <span className="text-muted-foreground"> this month. Upgrade to Pro.</span>
           </p>
           <a
@@ -122,13 +128,13 @@ function Workspace() {
               <Recorder
                 onReady={startAnalysis}
                 onReset={() => setStage({ kind: "idle" })}
-                disabled={remaining === 0}
+                disabled={!isMounted || remaining === 0}
               />
             ) : (
-              <UploadZone 
+              <UploadZone
                 onFile={(name, size) => {
                   if (remaining > 0) startAnalysis(name, size);
-                }} 
+                }}
               />
             )}
           </>
@@ -144,7 +150,7 @@ function Workspace() {
           />
         )}
 
-        {remaining === 0 && stage.kind === "idle" && (
+        {isMounted && remaining === 0 && stage.kind === "idle" && (
           <p className="mt-6 text-center text-sm text-destructive">
             You've used all 3 free checks this month. Upgrade to Pro to keep analyzing.
           </p>
