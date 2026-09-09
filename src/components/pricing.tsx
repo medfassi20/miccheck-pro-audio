@@ -76,7 +76,7 @@ export function Pricing() {
             <a
               href={tier.href}
               {...(tier.highlight ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-              className={`mt-8 block text-center rounded-xl px-5 py-3 text-sm font-semibold transition-transform hover:-translate-y-0.5 ${
+              className={`mt-8 inline-block text-center rounded-xl px-5 py-3 text-sm font-semibold transition-transform hover:-translate-y-0.5 ${
                 tier.highlight
                   ? "bg-gradient-primary text-primary-foreground shadow-glow"
                   : "border border-border bg-secondary text-secondary-foreground"
