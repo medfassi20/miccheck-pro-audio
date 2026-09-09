@@ -74,6 +74,8 @@ function Workspace() {
     setStage({ kind: "analyzing", file: name, size });
   };
 
+  const isLimitReached = isMounted && remaining === 0;
+
   return (
     <div className="min-h-screen">
       <SiteHeader />
@@ -98,10 +100,10 @@ function Workspace() {
             <span className="text-muted-foreground"> this month. Upgrade to Pro.</span>
           </p>
           <a
-            href="/#pricing"
+            href="https://miccheckai.gumroad.com/l/pro"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
           >
             <Sparkles className="size-3.5" /> Upgrade to Pro for unlimited checks
           </a>
@@ -115,10 +117,13 @@ function Workspace() {
                   key={m}
                   onClick={() => setMode(m)}
                   className={`rounded-lg px-4 py-2 font-semibold transition-colors ${
+                    isLimitReached ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+                  } ${
                     mode === m
                       ? "bg-gradient-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
+                  title={isLimitReached ? "No remaining free checks" : undefined}
                 >
                   {m === "record" ? "Record live" : "Upload a file"}
                 </button>
@@ -128,10 +133,11 @@ function Workspace() {
               <Recorder
                 onReady={startAnalysis}
                 onReset={() => setStage({ kind: "idle" })}
-                disabled={!isMounted || remaining === 0}
+                disabled={!isMounted || isLimitReached}
               />
             ) : (
               <UploadZone
+                disabled={!isMounted || isLimitReached}
                 onFile={(name, size) => {
                   if (remaining > 0) startAnalysis(name, size);
                 }}
@@ -150,8 +156,8 @@ function Workspace() {
           />
         )}
 
-        {isMounted && remaining === 0 && stage.kind === "idle" && (
-          <p className="mt-6 text-center text-sm text-destructive">
+        {isLimitReached && stage.kind === "idle" && (
+          <p className="mt-6 text-center text-sm font-medium text-destructive">
             You've used all 3 free checks this month. Upgrade to Pro to keep analyzing.
           </p>
         )}
