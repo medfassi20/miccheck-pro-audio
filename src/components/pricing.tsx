@@ -1,40 +1,58 @@
+import { useEffect, useState } from "react";
 import { Check, Sparkles } from "lucide-react";
 
-const tiers = [
-  {
-    name: "Free",
-    price: "$0",
-    cadence: "forever",
-    blurb: "Enough to sanity-check the episodes that matter.",
-    features: [
-      "3 analyses per month",
-      "SNR, peak & loudness checks",
-      "Pass / re-record verdict",
-      "Files up to 30 minutes",
-    ],
-    cta: "Start analyzing",
-    highlight: false,
-    href: "/workspace",
-  },
-  {
-    name: "Pro",
-    price: "$9",
-    cadence: "per month",
-    blurb: "For weekly shows and client voice-over delivery.",
-    features: [
-      "Unlimited analyses",
-      "Advanced noise reports with timestamps",
-      "Per-platform loudness targets",
-      "Batch uploads & export to PDF",
-      "Priority processing",
-    ],
-    cta: "Upgrade to Pro",
-    highlight: true,
-    href: "https://miccheckai.gumroad.com/l/pro",
-  },
-];
-
 export function Pricing() {
+  const [isPro, setIsPro] = useState<boolean>(false);
+
+  useEffect(() => {
+    // Vérification du statut Pro stocké localement
+    const savedPro = localStorage.getItem("miccheck_is_pro");
+    setIsPro(savedPro === "true");
+  }, []);
+
+  const handleSwitchToFree = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    // Suppression du statut Pro et retour au plan Gratuit
+    localStorage.removeItem("miccheck_is_pro");
+    sessionStorage.removeItem("miccheck_is_pro");
+    setIsPro(false);
+  };
+
+  const tiers = [
+    {
+      name: "Free",
+      price: "$0",
+      cadence: "forever",
+      blurb: "Enough to sanity-check the episodes that matter.",
+      features: [
+        "3 analyses per month",
+        "SNR, peak & loudness checks",
+        "Pass / re-record verdict",
+        "Files up to 30 minutes",
+      ],
+      cta: isPro ? "Return to Free Plan" : "Start analyzing",
+      highlight: false,
+      href: "/workspace",
+      onClick: isPro ? handleSwitchToFree : undefined,
+    },
+    {
+      name: "Pro",
+      price: "$9",
+      cadence: "per month",
+      blurb: "For weekly shows and client voice-over delivery.",
+      features: [
+        "Unlimited analyses",
+        "Advanced noise reports with timestamps",
+        "Per-platform loudness targets",
+        "Batch uploads & export to PDF",
+        "Priority processing",
+      ],
+        cta: isPro ? "Already Subscribed" : "Upgrade to Pro",
+        highlight: true,
+        href: isPro ? "/workspace" : "https://miccheckai.gumroad.com/l/pro",
+    },
+  ];
+
   return (
     <section id="pricing" className="mx-auto max-w-6xl px-5 py-24">
       <div className="mx-auto max-w-2xl text-center">
@@ -75,7 +93,8 @@ export function Pricing() {
             </ul>
             <a
               href={tier.href}
-              {...(tier.highlight ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+              onClick={tier.onClick}
+              {...(tier.highlight && !isPro ? { target: "_blank", rel: "noopener noreferrer" } : {})}
               className={`mt-8 inline-block text-center rounded-xl px-5 py-3 text-sm font-semibold transition-transform hover:-translate-y-0.5 ${
                 tier.highlight
                   ? "bg-gradient-primary text-primary-foreground shadow-glow"
