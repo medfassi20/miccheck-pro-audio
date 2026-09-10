@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { AudioLines } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle"; // Import du composant
 
 export function SiteHeader() {
   return (
@@ -11,6 +12,7 @@ export function SiteHeader() {
           </span>
           <span className="font-display text-lg font-semibold">MicCheck AI</span>
         </Link>
+        
         <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
           <a href="/#features" className="transition-colors hover:text-foreground">
             How it works
@@ -19,12 +21,17 @@ export function SiteHeader() {
             Pricing
           </a>
         </nav>
-        <Link
-          to="/workspace"
-          className="rounded-xl bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:-translate-y-0.5"
-        >
-          Try for free
-        </Link>
+
+        {/* Section actions avec le bouton Dark/Light Mode */}
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+          <Link
+            to="/workspace"
+            className="rounded-xl bg-gradient-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:-translate-y-0.5"
+          >
+            Try for free
+          </Link>
+        </div>
       </div>
     </header>
   );
