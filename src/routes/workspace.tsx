@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { Sparkles, Zap } from "lucide-react";
+import { Sparkles, Zap, CheckCircle2 } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { UploadZone } from "@/components/upload-zone";
@@ -37,17 +37,34 @@ type Stage = { kind: "idle" } | { kind: "analyzing"; file: string; size: number 
 function Workspace() {
   const [stage, setStage] = useState<Stage>({ kind: "idle" });
   const [remaining, setRemaining] = useState<number>(3);
+  const [isPro, setIsPro] = useState<boolean>(false);
   const [isMounted, setIsMounted] = useState(false);
   const [mode, setMode] = useState<"record" | "upload">("record");
 
-  // Synchronisation stricte au montage côté client
+  // Synchronisation au montage : vérification du statut Pro et des crédits
   useEffect(() => {
-    const saved = localStorage.getItem("miccheck_free_credits");
-    if (saved !== null) {
-      setRemaining(parseInt(saved, 10));
+    // 1. Détection du retour d'achat Gumroad via l'URL (?pro=true)
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasProParam = urlParams.get("pro") === "true";
+
+    if (hasProParam) {
+      localStorage.setItem("miccheck_is_pro", "true");
+      setIsPro(true);
+    } else {
+      const savedPro = localStorage.getItem("miccheck_is_pro");
+      if (savedPro === "true") {
+        setIsPro(true);
+      }
+    }
+
+    // 2. Gestion des crédits gratuits
+    const savedCredits = localStorage.getItem("miccheck_free_credits");
+    if (savedCredits !== null) {
+      setRemaining(parseInt(savedCredits, 10));
     } else {
       localStorage.setItem("miccheck_free_credits", "3");
     }
+
     setIsMounted(true);
   }, []);
 
@@ -59,6 +76,12 @@ function Workspace() {
   }, []);
 
   const startAnalysis = (name: string, size: number) => {
+    // Si l'utilisateur est Pro, accès illimité sans décompte
+    if (isPro) {
+      setStage({ kind: "analyzing", file: name, size });
+      return;
+    }
+
     const currentSaved = localStorage.getItem("miccheck_free_credits");
     const actualRemaining = currentSaved !== null ? parseInt(currentSaved, 10) : remaining;
 
@@ -74,7 +97,8 @@ function Workspace() {
     setStage({ kind: "analyzing", file: name, size });
   };
 
-  const isLimitReached = isMounted && remaining === 0;
+  // Bloqué uniquement si non-Pro ET crédits épuisés
+  const isLimitReached = isMounted && !isPro && remaining === 0;
 
   return (
     <div className="min-h-screen">
@@ -88,25 +112,42 @@ function Workspace() {
             </p>
           </div>
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1.5 text-xs text-muted-foreground">
-            <Zap className="size-3.5 text-accent" /> Free plan
+            {isPro ? (
+              <>
+                <Sparkles className="size-3.5 text-primary" /> Pro Plan
+              </>
+            ) : (
+              <>
+                <Zap className="size-3.5 text-accent" /> Free plan
+              </>
+            )}
           </span>
         </header>
 
+        {/* Banner de statut */}
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-4">
-          <p className="text-sm">
-            <span className="font-semibold">
-              {isMounted ? remaining : "..."} free analyses remaining
-            </span>
-            <span className="text-muted-foreground"> this month. Upgrade to Pro.</span>
-          </p>
-          <a
-            href="https://miccheckai.gumroad.com/l/pro"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-          >
-            <Sparkles className="size-3.5" /> Upgrade to Pro for unlimited checks
-          </a>
+          {isPro ? (
+            <p className="text-sm font-semibold text-primary flex items-center gap-2">
+              <CheckCircle2 className="size-4" /> Pro Member — Unlimited voice quality audits active
+            </p>
+          ) : (
+            <>
+              <p className="text-sm">
+                <span className="font-semibold">
+                  {isMounted ? remaining : "..."} free analyses remaining
+                </span>
+                <span className="text-muted-foreground"> this month. Upgrade to Pro.</span>
+              </p>
+              <a
+                href="https://miccheckai.gumroad.com/l/pro"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+              >
+                <Sparkles className="size-3.5" /> Upgrade to Pro for unlimited checks
+              </a>
+            </>
+          )}
         </div>
 
         {stage.kind === "idle" && (
@@ -139,7 +180,7 @@ function Workspace() {
               <UploadZone
                 disabled={!isMounted || isLimitReached}
                 onFile={(name, size) => {
-                  if (remaining > 0) startAnalysis(name, size);
+                  if (isPro || remaining > 0) startAnalysis(name, size);
                 }}
               />
             )}
