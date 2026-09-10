@@ -43,43 +43,72 @@ function Workspace() {
 
   // Synchronisation au montage : statut Pro et crédits mensuels
   useEffect(() => {
-    setIsMounted(true);
+  setIsMounted(true);
 
-    // 1. Contrôle du statut Pro
-    const urlParams = new URLSearchParams(window.location.search);
-    const hasProParam = urlParams.get("pro") === "true";
+  const verifyLicense = async (key: string) => {
+    try {
+      const res = await fetch("https://api.gumroad.com/v2/licenses/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          product_id: "1tKyAaR79VgRgEMjGRZjEg==", // Ton Product ID issu de l'image
+          license_key: key,
+        }),
+      });
 
-    if (hasProParam) {
-      // Activer la session Pro si la redirection post-achat est détectée
-      sessionStorage.setItem("miccheck_is_pro", "true");
-      setIsPro(true);
-      // Nettoyer l'URL pour masquer ?pro=true sans recharger la page
-      window.history.replaceState({}, document.title, window.location.pathname);
-    } else {
-      // Conserver le statut durant toute la durée de session du navigateur
-      const savedPro = sessionStorage.getItem("miccheck_is_pro");
-      setIsPro(savedPro === "true");
+      const data = await res.json();
+
+      // Vérifie si la licence est valide et si l'abonnement est actif
+      if (data.success && !data.purchase.subscription_cancelled_at) {
+        localStorage.setItem("miccheck_is_pro", "true");
+        localStorage.setItem("miccheck_license_key", key);
+        sessionStorage.setItem("miccheck_is_pro", "true");
+        setIsPro(true);
+      } else {
+        // Licence invalide ou annulée -> Rétrogradation automatique
+        localStorage.removeItem("miccheck_is_pro");
+        localStorage.removeItem("miccheck_license_key");
+        sessionStorage.removeItem("miccheck_is_pro");
+        setIsPro(false);
+      }
+    } catch {
+      // En cas d'erreur réseau, on se fie au dernier état enregistré localement
+      const savedPro = localStorage.getItem("miccheck_is_pro") === "true";
+      setIsPro(savedPro);
     }
+  };
 
-    // 2. Gestion stricte des crédits mensuels
-    const currentMonth = new Date().toISOString().slice(0, 7);
-    const savedMonth = localStorage.getItem("miccheck_last_usage_month");
-    const rawUsed = localStorage.getItem("miccheck_usage_count");
+  const urlParams = new URLSearchParams(window.location.search);
+  const licenseParam = urlParams.get("license");
 
-    if (!savedMonth) {
-      localStorage.setItem("miccheck_last_usage_month", currentMonth);
-      const used = parseInt(rawUsed || "0", 10);
-      setRemaining(Math.max(0, 3 - used));
-    } else if (savedMonth !== currentMonth) {
-      localStorage.setItem("miccheck_last_usage_month", currentMonth);
-      localStorage.setItem("miccheck_usage_count", "0");
-      setRemaining(3);
+  if (licenseParam) {
+    verifyLicense(licenseParam);
+    // Nettoyer l'URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+  } else {
+    const savedKey = localStorage.getItem("miccheck_license_key");
+    if (savedKey) {
+      verifyLicense(savedKey);
     } else {
-      const used = parseInt(rawUsed || "0", 10);
-      setRemaining(Math.max(0, 3 - used));
+      const savedPro = localStorage.getItem("miccheck_is_pro") === "true";
+      setIsPro(savedPro);
     }
-  }, []);
+  }
 
+  // Gestion des crédits gratuits
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const savedMonth = localStorage.getItem("miccheck_last_usage_month");
+  const rawUsed = localStorage.getItem("miccheck_usage_count");
+
+  if (!savedMonth || savedMonth !== currentMonth) {
+    localStorage.setItem("miccheck_last_usage_month", currentMonth);
+    localStorage.setItem("miccheck_usage_count", "0");
+    setRemaining(3);
+  } else {
+    const used = parseInt(rawUsed || "0", 10);
+    setRemaining(Math.max(0, 3 - used));
+  }
+}, []);
   const finish = useCallback(() => {
     setStage((s) => {
       if (s.kind !== "analyzing") return s;
