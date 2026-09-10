@@ -45,36 +45,36 @@ function Workspace() {
   useEffect(() => {
     setIsMounted(true);
 
-    // 1. Détection du statut Pro
+    // 1. Contrôle du statut Pro
     const urlParams = new URLSearchParams(window.location.search);
     const hasProParam = urlParams.get("pro") === "true";
 
     if (hasProParam) {
+      // Activer la session Pro si la redirection post-achat est détectée
       sessionStorage.setItem("miccheck_is_pro", "true");
       setIsPro(true);
+      // Nettoyer l'URL pour masquer ?pro=true sans recharger la page
       window.history.replaceState({}, document.title, window.location.pathname);
     } else {
+      // Conserver le statut durant toute la durée de session du navigateur
       const savedPro = sessionStorage.getItem("miccheck_is_pro");
       setIsPro(savedPro === "true");
     }
 
-    // 2. Gestion stricte de la réinitialisation mensuelle
-    const currentMonth = new Date().toISOString().slice(0, 7); // Ex: "2026-09"
+    // 2. Gestion stricte des crédits mensuels
+    const currentMonth = new Date().toISOString().slice(0, 7);
     const savedMonth = localStorage.getItem("miccheck_last_usage_month");
     const rawUsed = localStorage.getItem("miccheck_usage_count");
 
     if (!savedMonth) {
-      // Première utilisation absolue : on initialise le mois et le compteur existant s'il existe
       localStorage.setItem("miccheck_last_usage_month", currentMonth);
       const used = parseInt(rawUsed || "0", 10);
       setRemaining(Math.max(0, 3 - used));
     } else if (savedMonth !== currentMonth) {
-      // Le mois a REELLEMENT changé : réinitialisation à 0
       localStorage.setItem("miccheck_last_usage_month", currentMonth);
       localStorage.setItem("miccheck_usage_count", "0");
       setRemaining(3);
     } else {
-      // Même mois : lecture stricte de la consommation actuelle
       const used = parseInt(rawUsed || "0", 10);
       setRemaining(Math.max(0, 3 - used));
     }
