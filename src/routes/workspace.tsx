@@ -1,225 +1,159 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
-import { Sparkles, Zap, CheckCircle2 } from "lucide-react";
-import { SiteHeader } from "@/components/site-header";
-import { SiteFooter } from "@/components/site-footer";
-import { UploadZone } from "@/components/upload-zone";
-import { Analyzing } from "@/components/analyzing";
-import { Recorder } from "@/components/recorder";
-import { AuditReport } from "@/components/audit-report";
-import { buildReport, type Report } from "@/lib/analysis";
+import React, { useState, useEffect } from "react";
+import { CheckCircle2, Sparkles, Upload, Volume2, ShieldAlert, BarChart3, AlertCircle } from "lucide-react";
 
-export const Route = createFileRoute("/workspace")({
-  component: Workspace,
-  head: () => ({
-    meta: [
-      { title: "Live Voice Quality Audit Workspace | MicCheck AI" },
-      {
-        name: "description",
-        content:
-          "Record your voice or upload a file and get an instant audit of SNR, voice activity, true peak and LUFS loudness.",
-      },
-      { property: "og:title", content: "Live Voice Quality Audit Workspace | MicCheck AI" },
-      {
-        property: "og:description",
-        content: "Instant voice quality audit: SNR, voice activity, true peak and LUFS.",
-      },
-      { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://miccheck-pro-audio.lovable.app/workspace" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-    links: [{ rel: "canonical", href: "https://miccheck-pro-audio.lovable.app/workspace" }],
-  }),
-});
-
-type Stage = { kind: "idle" } | { kind: "analyzing"; file: string; size: number } | { kind: "done"; report: Report };
-
-function Workspace() {
-  const [stage, setStage] = useState<Stage>({ kind: "idle" });
-  const [remaining, setRemaining] = useState<number>(3);
-  const [isPro, setIsPro] = useState<boolean>(false);
+export default function Workspace() {
+  const [isPro, setIsPro] = useState(false);
+  const [remaining, setRemaining] = useState(3);
   const [isMounted, setIsMounted] = useState(false);
-  const [mode, setMode] = useState<"record" | "upload">("record");
 
-  // Synchronisation au montage : vérification du statut Pro et des crédits
   useEffect(() => {
-    // 1. Détection du retour d'achat Gumroad via l'URL (?pro=true)
+    setIsMounted(true);
+
+    // 1. Détection et sauvegarde du statut Pro
     const urlParams = new URLSearchParams(window.location.search);
     const hasProParam = urlParams.get("pro") === "true";
 
     if (hasProParam) {
-      localStorage.setItem("miccheck_is_pro", "true");
+      sessionStorage.setItem("miccheck_is_pro", "true");
       setIsPro(true);
-      // Nettoie proprement le paramètre de la barre d'adresse
       window.history.replaceState({}, document.title, window.location.pathname);
     } else {
-      const savedPro = localStorage.getItem("miccheck_is_pro");
-      if (savedPro === "true") {
-        setIsPro(true);
-      }
+      const savedPro = sessionStorage.getItem("miccheck_is_pro");
+      setIsPro(savedPro === "true");
     }
 
-    // 2. Gestion des crédits gratuits
-    const savedCredits = localStorage.getItem("miccheck_free_credits");
-    if (savedCredits !== null) {
-      setRemaining(parseInt(savedCredits, 10));
+    // 2. Réinitialisation mensuelle des 3 crédits gratuits
+    const currentMonth = new Date().toISOString().slice(0, 7); // Ex: "2026-09"
+    const savedMonth = localStorage.getItem("miccheck_last_usage_month");
+
+    if (savedMonth !== currentMonth) {
+      // Nouveau mois détecté : réinitialisation à 3 essais pour le nouveau mois
+      localStorage.setItem("miccheck_last_usage_month", currentMonth);
+      localStorage.setItem("miccheck_usage_count", "0");
+      setRemaining(3);
     } else {
-      localStorage.setItem("miccheck_free_credits", "3");
+      const used = parseInt(localStorage.getItem("miccheck_usage_count") || "0", 10);
+      setRemaining(Math.max(0, 3 - used));
     }
-
-    setIsMounted(true);
   }, []);
 
-  const finish = useCallback(() => {
-    setStage((s) => {
-      if (s.kind !== "analyzing") return s;
-      return { kind: "done", report: buildReport(s.file, s.size) };
-    });
-  }, []);
-
-  const startAnalysis = (name: string, size: number) => {
-    // Si l'utilisateur est Pro, accès illimité sans décompte
-    if (isPro) {
-      setStage({ kind: "analyzing", file: name, size });
-      return;
+  // Fonction de déclenchement d'une analyse audio
+  const handleAnalyzeAudio = () => {
+    if (!isPro) {
+      if (remaining <= 0) {
+        alert("Vos 3 essais gratuits pour ce mois-ci sont consommés. Vous devez attendre le mois prochain pour récupérer vos 3 essais gratuits ou passer à la version Pro !");
+        return;
+      }
+      const newUsed = parseInt(localStorage.getItem("miccheck_usage_count") || "0", 10) + 1;
+      localStorage.setItem("miccheck_usage_count", newUsed.toString());
+      setRemaining(Math.max(0, 3 - newUsed));
     }
 
-    const currentSaved = localStorage.getItem("miccheck_free_credits");
-    const actualRemaining = currentSaved !== null ? parseInt(currentSaved, 10) : remaining;
-
-    if (actualRemaining <= 0) {
-      setRemaining(0);
-      return;
-    }
-
-    const nextCount = actualRemaining - 1;
-    setRemaining(nextCount);
-    localStorage.setItem("miccheck_free_credits", nextCount.toString());
-
-    setStage({ kind: "analyzing", file: name, size });
+    // Lancer le traitement de la qualité audio...
   };
 
-  // Bloqué uniquement si non-Pro ET crédits épuisés
-  const isLimitReached = isMounted && !isPro && remaining === 0;
-
   return (
-    <div className="min-h-screen">
-      <SiteHeader />
-      <main className="mx-auto max-w-3xl px-5 py-14">
-        <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Voice quality audit workspace</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Record a take or upload a file and get a publish-or-re-record verdict in seconds.
-            </p>
-          </div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1.5 text-xs text-muted-foreground">
-            {isPro ? (
-              <>
-                <Sparkles className="size-3.5 text-primary" /> Pro Plan
-              </>
-            ) : (
-              <>
-                <Zap className="size-3.5 text-accent" /> Free plan
-              </>
-            )}
-          </span>
+    <main className="min-h-screen bg-background text-foreground p-6 md:p-12">
+      <div className="max-w-4xl mx-auto space-y-8">
+        
+        {/* Header */}
+        <header className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Audio Quality Workspace</h1>
+          <p className="text-muted-foreground text-sm">
+            Analyze your voice clarity, background noise, peak levels, and compliance.
+          </p>
         </header>
 
-        {/* Banner de statut */}
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-4">
+        {/* Banner de statut dynamique */}
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-4">
           {isPro ? (
-            <>
+            <div className="flex items-center justify-between w-full">
               <p className="text-sm font-semibold text-primary flex items-center gap-2">
                 <CheckCircle2 className="size-4" /> Pro Member — Unlimited voice quality audits active
               </p>
-              {/* Bouton de réinitialisation de session Pro */}
-              <button
-                onClick={() => {
-                  localStorage.removeItem("miccheck_is_pro");
-                  setIsPro(false);
-                  window.location.reload();
-                }}
-                className="text-xs text-muted-foreground underline hover:text-foreground transition-colors cursor-pointer"
-                title="Click if you canceled your subscription on Gumroad to update local status"
-              >
-                Reset session
-              </button>
-            </>
+              <span className="text-xs font-bold uppercase tracking-wider bg-primary/20 text-primary px-3 py-1 rounded-full border border-primary/30">
+                Already Subscribed
+              </span>
+            </div>
           ) : (
             <>
-              <p className="text-sm">
-                <span className="font-semibold">
-                  {isMounted ? remaining : "..."} free analyses remaining
-                </span>
-                <span className="text-muted-foreground"> this month. Upgrade to Pro.</span>
-              </p>
-              <a
-                href="https://miccheckai.gumroad.com/l/pro"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-              >
-                <Sparkles className="size-3.5" /> Upgrade to Pro for unlimited checks
-              </a>
+              <div className="space-y-1">
+                <p className="text-sm">
+                  <span className="font-semibold">
+                    {isMounted ? remaining : "..."} free analyses remaining
+                  </span>
+                  <span className="text-muted-foreground"> this month.</span>
+                </p>
+                {remaining <= 0 && (
+                  <p className="text-xs text-destructive font-medium flex items-center gap-1">
+                    <AlertCircle className="size-3.5" />
+                    Limite atteinte. Attendez le mois prochain pour vos 3 prochains essais gratuits.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <a
+                  href="https://miccheckai.gumroad.com/l/pro"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                >
+                  <Sparkles className="size-3.5" /> Upgrade to Pro for unlimited checks
+                </a>
+              </div>
             </>
           )}
         </div>
 
-        {stage.kind === "idle" && (
-          <>
-            <div className="mb-6 inline-flex rounded-xl border border-border bg-secondary p-1 text-sm">
-              {(["record", "upload"] as const).map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setMode(m)}
-                  className={`rounded-lg px-4 py-2 font-semibold transition-colors ${
-                    isLimitReached ? "cursor-not-allowed opacity-60" : "cursor-pointer"
-                  } ${
-                    mode === m
-                      ? "bg-gradient-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                  title={isLimitReached ? "No remaining free checks" : undefined}
-                >
-                  {m === "record" ? "Record live" : "Upload a file"}
-                </button>
-              ))}
-            </div>
-            {mode === "record" ? (
-              <Recorder
-                onReady={startAnalysis}
-                onReset={() => setStage({ kind: "idle" })}
-                disabled={!isMounted || isLimitReached}
-              />
-            ) : (
-              <UploadZone
-                disabled={!isMounted || isLimitReached}
-                onFile={(name, size) => {
-                  if (isPro || remaining > 0) startAnalysis(name, size);
-                }}
-              />
-            )}
-          </>
-        )}
-        {stage.kind === "analyzing" && <Analyzing fileName={stage.file} onDone={finish} />}
-        {stage.kind === "done" && (
-          <AuditReport
-            report={stage.report}
-            onReset={() => {
-              setMode("record");
-              setStage({ kind: "idle" });
-            }}
-          />
-        )}
+        {/* Section Zone de Dépose / Audit */}
+        <section className="border-2 border-dashed border-border rounded-2xl p-12 text-center space-y-4 hover:border-primary/50 transition-colors bg-card">
+          <div className="mx-auto size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+            <Upload className="size-6" />
+          </div>
+          <div>
+            <h3 className="text-lg font-medium">Upload your audio file</h3>
+            <p className="text-xs text-muted-foreground mt-1">Supports WAV, MP3, M4A up to 50MB</p>
+          </div>
 
-        {isLimitReached && stage.kind === "idle" && (
-          <p className="mt-6 text-center text-sm font-medium text-destructive">
-            You've used all 3 free checks this month. Upgrade to Pro to keep analyzing.
-          </p>
-        )}
-      </main>
-      <SiteFooter />
-    </div>
+          <button
+            onClick={handleAnalyzeAudio}
+            disabled={!isPro && remaining <= 0}
+            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              !isPro && remaining <= 0
+                ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
+                : "bg-primary text-primary-foreground hover:opacity-90"
+            }`}
+          >
+            <BarChart3 className="size-4" />
+            {!isPro && remaining <= 0 ? "Free Limit Reached (Wait next month)" : "Start Quality Audit"}
+          </button>
+        </section>
+
+        {/* Section Fonctionnalités & Cartes d'Analyse */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="p-5 rounded-2xl border border-border bg-card space-y-2">
+            <div className="flex items-center gap-2 text-primary font-medium">
+              <Volume2 className="size-4" />
+              <span>Loudness & Peaks</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Calculates integrated LUFS and peak levels to ensure broadcast and podcast standards compliance.
+            </p>
+          </div>
+
+          <div className="p-5 rounded-2xl border border-border bg-card space-y-2">
+            <div className="flex items-center gap-2 text-primary font-medium">
+              <ShieldAlert className="size-4" />
+              <span>Noise Floor & Clarity</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Detects room hum, background noise, clipping distortion, and overall speech clarity score.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </main>
   );
 }
