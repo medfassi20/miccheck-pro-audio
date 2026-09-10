@@ -42,7 +42,7 @@ function Workspace() {
   const [mode, setMode] = useState<"record" | "upload">("record");
 
   // Synchronisation au montage : statut Pro et crédits mensuels
-  useEffect(() => {
+useEffect(() => {
   setIsMounted(true);
 
   const verifyLicense = async (key: string) => {
@@ -109,12 +109,6 @@ function Workspace() {
     setRemaining(Math.max(0, 3 - used));
   }
 }, []);
-  const finish = useCallback(() => {
-    setStage((s) => {
-      if (s.kind !== "analyzing") return s;
-      return { kind: "done", report: buildReport(s.file, s.size) };
-    });
-  }, []);
 
   const startAnalysis = (name: string, size: number) => {
     if (isPro) {
