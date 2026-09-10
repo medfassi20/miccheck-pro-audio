@@ -114,10 +114,8 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {children}
-        </ThemeProvider>
+      <body className="min-h-screen bg-background font-sans antialiased">
+        {children}
         <Scripts />
       </body>
     </html>
@@ -129,8 +127,14 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange
+      >
+        <Outlet />
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
