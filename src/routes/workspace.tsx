@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { CheckCircle2, Sparkles, Upload, Volume2, ShieldAlert, BarChart3, RotateCcw } from "lucide-react";
+import { CheckCircle2, Sparkles, Upload, Volume2, ShieldAlert, BarChart3 } from "lucide-react";
 
 export default function Workspace() {
   const [isPro, setIsPro] = useState(false);
@@ -23,11 +23,10 @@ export default function Workspace() {
     }
 
     // 2. Réinitialisation mensuelle des 3 crédits gratuits
-    const currentMonth = new Date().toISOString().slice(0, 7); // Ex: "2026-09"
+    const currentMonth = new Date().toISOString().slice(0, 7);
     const savedMonth = localStorage.getItem("miccheck_last_usage_month");
 
     if (savedMonth !== currentMonth) {
-      // Nouveau mois détecté : remise à 0 de la consommation (3 essais disponibles)
       localStorage.setItem("miccheck_last_usage_month", currentMonth);
       localStorage.setItem("miccheck_usage_count", "0");
       setRemaining(3);
@@ -37,13 +36,11 @@ export default function Workspace() {
     }
   }, []);
 
-  // Fonction pour simuler ou repasser manuellement au plan Gratuit (si besoin)
   const handleSwitchToFree = () => {
     sessionStorage.removeItem("miccheck_is_pro");
     setIsPro(false);
   };
 
-  // Fonction à appeler lors du lancement d'une analyse audio
   const handleAnalyzeAudio = () => {
     if (!isPro) {
       if (remaining <= 0) {
@@ -54,8 +51,6 @@ export default function Workspace() {
       localStorage.setItem("miccheck_usage_count", newUsed.toString());
       setRemaining(Math.max(0, 3 - newUsed));
     }
-
-    // Déclencher l'analyse de qualité audio ici...
   };
 
   return (
@@ -83,10 +78,9 @@ export default function Workspace() {
                 </span>
                 <button
                   onClick={handleSwitchToFree}
-                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground underline transition-colors"
-                  title="Switch view to Free tier"
+                  className="text-xs text-muted-foreground hover:text-foreground underline transition-colors cursor-pointer"
                 >
-                  <RotateCcw className="size-3" /> Revenir au plan Gratuit
+                  Revenir au plan Gratuit
                 </button>
               </div>
             </>
