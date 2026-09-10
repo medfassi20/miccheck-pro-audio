@@ -45,7 +45,7 @@ function Workspace() {
   useEffect(() => {
     setIsMounted(true);
 
-    // 1. Détection du retour d'achat Gumroad via ?pro=true
+    // 1. Détection du statut Pro
     const urlParams = new URLSearchParams(window.location.search);
     const hasProParam = urlParams.get("pro") === "true";
 
@@ -58,17 +58,24 @@ function Workspace() {
       setIsPro(savedPro === "true");
     }
 
-    // 2. Réinitialisation mensuelle automatique des 3 crédits gratuits
-    const currentMonth = new Date().toISOString().slice(0, 7); // ex: "2026-09"
+    // 2. Gestion stricte de la réinitialisation mensuelle
+    const currentMonth = new Date().toISOString().slice(0, 7); // Ex: "2026-09"
     const savedMonth = localStorage.getItem("miccheck_last_usage_month");
+    const rawUsed = localStorage.getItem("miccheck_usage_count");
 
-    if (savedMonth !== currentMonth) {
-      // Nouveau mois : remise à zéro de la consommation
+    if (!savedMonth) {
+      // Première utilisation absolue : on initialise le mois et le compteur existant s'il existe
+      localStorage.setItem("miccheck_last_usage_month", currentMonth);
+      const used = parseInt(rawUsed || "0", 10);
+      setRemaining(Math.max(0, 3 - used));
+    } else if (savedMonth !== currentMonth) {
+      // Le mois a REELLEMENT changé : réinitialisation à 0
       localStorage.setItem("miccheck_last_usage_month", currentMonth);
       localStorage.setItem("miccheck_usage_count", "0");
       setRemaining(3);
     } else {
-      const used = parseInt(localStorage.getItem("miccheck_usage_count") || "0", 10);
+      // Même mois : lecture stricte de la consommation actuelle
+      const used = parseInt(rawUsed || "0", 10);
       setRemaining(Math.max(0, 3 - used));
     }
   }, []);
@@ -86,6 +93,7 @@ function Workspace() {
       return;
     }
 
+    const currentMonth = new Date().toISOString().slice(0, 7);
     const used = parseInt(localStorage.getItem("miccheck_usage_count") || "0", 10);
     const currentRemaining = Math.max(0, 3 - used);
 
@@ -95,6 +103,7 @@ function Workspace() {
     }
 
     const nextUsed = used + 1;
+    localStorage.setItem("miccheck_last_usage_month", currentMonth);
     localStorage.setItem("miccheck_usage_count", nextUsed.toString());
     setRemaining(Math.max(0, 3 - nextUsed));
 
