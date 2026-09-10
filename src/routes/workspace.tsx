@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { CheckCircle2, Sparkles, Upload, Volume2, ShieldAlert, BarChart3, AlertCircle } from "lucide-react";
+import { CheckCircle2, Sparkles, Upload, Volume2, ShieldAlert, BarChart3, RotateCcw } from "lucide-react";
 
 export default function Workspace() {
   const [isPro, setIsPro] = useState(false);
@@ -27,7 +27,7 @@ export default function Workspace() {
     const savedMonth = localStorage.getItem("miccheck_last_usage_month");
 
     if (savedMonth !== currentMonth) {
-      // Nouveau mois détecté : réinitialisation à 3 essais pour le nouveau mois
+      // Nouveau mois détecté : remise à 0 de la consommation (3 essais disponibles)
       localStorage.setItem("miccheck_last_usage_month", currentMonth);
       localStorage.setItem("miccheck_usage_count", "0");
       setRemaining(3);
@@ -37,11 +37,17 @@ export default function Workspace() {
     }
   }, []);
 
-  // Fonction de déclenchement d'une analyse audio
+  // Fonction pour simuler ou repasser manuellement au plan Gratuit (si besoin)
+  const handleSwitchToFree = () => {
+    sessionStorage.removeItem("miccheck_is_pro");
+    setIsPro(false);
+  };
+
+  // Fonction à appeler lors du lancement d'une analyse audio
   const handleAnalyzeAudio = () => {
     if (!isPro) {
       if (remaining <= 0) {
-        alert("Vos 3 essais gratuits pour ce mois-ci sont consommés. Vous devez attendre le mois prochain pour récupérer vos 3 essais gratuits ou passer à la version Pro !");
+        alert("You have reached your limit of 3 free analyses for this month. Upgrade to Pro for unlimited audits!");
         return;
       }
       const newUsed = parseInt(localStorage.getItem("miccheck_usage_count") || "0", 10) + 1;
@@ -49,7 +55,7 @@ export default function Workspace() {
       setRemaining(Math.max(0, 3 - newUsed));
     }
 
-    // Lancer le traitement de la qualité audio...
+    // Déclencher l'analyse de qualité audio ici...
   };
 
   return (
@@ -67,41 +73,39 @@ export default function Workspace() {
         {/* Banner de statut dynamique */}
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-4">
           {isPro ? (
-            <div className="flex items-center justify-between w-full">
+            <>
               <p className="text-sm font-semibold text-primary flex items-center gap-2">
                 <CheckCircle2 className="size-4" /> Pro Member — Unlimited voice quality audits active
               </p>
-              <span className="text-xs font-bold uppercase tracking-wider bg-primary/20 text-primary px-3 py-1 rounded-full border border-primary/30">
-                Already Subscribed
-              </span>
-            </div>
+              <div className="flex items-center gap-3">
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-primary/20 px-3 py-1.5 text-xs font-bold text-primary border border-primary/30">
+                  <CheckCircle2 className="size-3.5" /> Already Subscribed
+                </span>
+                <button
+                  onClick={handleSwitchToFree}
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground underline transition-colors"
+                  title="Switch view to Free tier"
+                >
+                  <RotateCcw className="size-3" /> Revenir au plan Gratuit
+                </button>
+              </div>
+            </>
           ) : (
             <>
-              <div className="space-y-1">
-                <p className="text-sm">
-                  <span className="font-semibold">
-                    {isMounted ? remaining : "..."} free analyses remaining
-                  </span>
-                  <span className="text-muted-foreground"> this month.</span>
-                </p>
-                {remaining <= 0 && (
-                  <p className="text-xs text-destructive font-medium flex items-center gap-1">
-                    <AlertCircle className="size-3.5" />
-                    Limite atteinte. Attendez le mois prochain pour vos 3 prochains essais gratuits.
-                  </p>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <a
-                  href="https://miccheckai.gumroad.com/l/pro"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-                >
-                  <Sparkles className="size-3.5" /> Upgrade to Pro for unlimited checks
-                </a>
-              </div>
+              <p className="text-sm">
+                <span className="font-semibold">
+                  {isMounted ? remaining : "..."} free analyses remaining
+                </span>
+                <span className="text-muted-foreground"> this month. Upgrade to Pro.</span>
+              </p>
+              <a
+                href="https://miccheckai.gumroad.com/l/pro"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+              >
+                <Sparkles className="size-3.5" /> Upgrade to Pro for unlimited checks
+              </a>
             </>
           )}
         </div>
@@ -115,18 +119,12 @@ export default function Workspace() {
             <h3 className="text-lg font-medium">Upload your audio file</h3>
             <p className="text-xs text-muted-foreground mt-1">Supports WAV, MP3, M4A up to 50MB</p>
           </div>
-
           <button
             onClick={handleAnalyzeAudio}
-            disabled={!isPro && remaining <= 0}
-            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${
-              !isPro && remaining <= 0
-                ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
-                : "bg-primary text-primary-foreground hover:opacity-90"
-            }`}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
           >
             <BarChart3 className="size-4" />
-            {!isPro && remaining <= 0 ? "Free Limit Reached (Wait next month)" : "Start Quality Audit"}
+            Start Quality Audit
           </button>
         </section>
 
