@@ -50,6 +50,8 @@ function Workspace() {
     if (hasProParam) {
       localStorage.setItem("miccheck_is_pro", "true");
       setIsPro(true);
+      // Nettoie le paramètre de la barre d'adresse pour garder une URL propre
+      window.history.replaceState({}, document.title, window.location.pathname);
     } else {
       const savedPro = localStorage.getItem("miccheck_is_pro");
       if (savedPro === "true") {
