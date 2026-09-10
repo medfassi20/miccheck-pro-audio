@@ -50,7 +50,7 @@ function Workspace() {
     if (hasProParam) {
       localStorage.setItem("miccheck_is_pro", "true");
       setIsPro(true);
-      // Nettoie le paramètre de la barre d'adresse pour garder une URL propre
+      // Nettoie proprement le paramètre de la barre d'adresse
       window.history.replaceState({}, document.title, window.location.pathname);
     } else {
       const savedPro = localStorage.getItem("miccheck_is_pro");
@@ -129,9 +129,23 @@ function Workspace() {
         {/* Banner de statut */}
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-4">
           {isPro ? (
-            <p className="text-sm font-semibold text-primary flex items-center gap-2">
-              <CheckCircle2 className="size-4" /> Pro Member — Unlimited voice quality audits active
-            </p>
+            <>
+              <p className="text-sm font-semibold text-primary flex items-center gap-2">
+                <CheckCircle2 className="size-4" /> Pro Member — Unlimited voice quality audits active
+              </p>
+              {/* Bouton de réinitialisation de session Pro */}
+              <button
+                onClick={() => {
+                  localStorage.removeItem("miccheck_is_pro");
+                  setIsPro(false);
+                  window.location.reload();
+                }}
+                className="text-xs text-muted-foreground underline hover:text-foreground transition-colors cursor-pointer"
+                title="Click if you canceled your subscription on Gumroad to update local status"
+              >
+                Reset session
+              </button>
+            </>
           ) : (
             <>
               <p className="text-sm">
