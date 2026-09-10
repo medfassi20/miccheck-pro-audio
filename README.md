@@ -65,7 +65,6 @@ Ensure you have [Node.js](https://nodejs.org/) (v18+ recommended) and `npm` inst
 │   ├── routes/           # TanStack file-based routing system (/workspace, etc.)
 │   └── lib/              # Audio processing and analysis algorithms
 ├── public/               # Static assets
-└── tailwind.config.js    # Theme and dark mode configuration
 ```
 
 Built with [Lovable](https://lovable.dev) and maintained for high-performance audio verification.
