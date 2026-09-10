@@ -5,14 +5,16 @@ export function Pricing() {
   const [isPro, setIsPro] = useState<boolean>(false);
 
   useEffect(() => {
-    // Vérification du statut Pro stocké localement
-    const savedPro = localStorage.getItem("miccheck_is_pro");
-    setIsPro(savedPro === "true");
+    // Vérifier si le statut Pro est présent dans localStorage OU sessionStorage
+    const localPro = localStorage.getItem("miccheck_is_pro") === "true";
+    const sessionPro = sessionStorage.getItem("miccheck_is_pro") === "true";
+    
+    setIsPro(localPro || sessionPro);
   }, []);
 
   const handleSwitchToFree = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
-    // Suppression du statut Pro et retour au plan Gratuit
+    // Suppression complète du statut Pro
     localStorage.removeItem("miccheck_is_pro");
     sessionStorage.removeItem("miccheck_is_pro");
     setIsPro(false);
@@ -47,9 +49,9 @@ export function Pricing() {
         "Batch uploads & export to PDF",
         "Priority processing",
       ],
-        cta: isPro ? "Already Subscribed" : "Upgrade to Pro",
-        highlight: true,
-        href: isPro ? "/workspace" : "https://miccheckai.gumroad.com/l/pro",
+      cta: isPro ? "Already Subscribed" : "Upgrade to Pro",
+      highlight: true,
+      href: isPro ? "/workspace" : "https://miccheckai.gumroad.com/l/pro",
     },
   ];
 
