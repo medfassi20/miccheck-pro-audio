@@ -1,29 +1,47 @@
-# Welcome to your Lovable project
+# MicCheck AI — Live Voice Quality Audit Workspace
 
-This project was built with [Lovable](https://lovable.dev).
+MicCheck AI provides podcasters, video creators, audio engineers, and content teams with instant, browser-based feedback on audio health. Instead of spending hours in a DAW or publishing sub-par recordings, users receive real-time metrics on SNR, voice activity, true peak, and LUFS loudness to make confident **publish-or-re-record** decisions in seconds.
 
-## Build with Lovable
+---
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+## Key Capabilities
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+* **Instant Voice Quality Audits**: Analyze recorded or uploaded audio for essential standards (SNR, LUFS, True Peak, VAD).
+* **Flexible Light / Dark Mode**: Adaptive, accessible user interface optimized for diverse lighting conditions and prolonged studio sessions.
+* **Tiered Access Engine**: Seamless credit system for free-tier evaluation alongside instant Pro upgrades via URL parameters and persistent state management.
+* **Client-Side First**: Fast analysis without mandatory server-side rendering delays, maintaining privacy and speed.
 
-## Development
+---
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+## Technical Stack
 
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
-```
+* **Framework**: [TanStack Start](https://tanstack.com/start) / React
+* **Language**: TypeScript
+* **Styling**: Tailwind CSS
+* **Icons & UI**: Lucide React, `next-themes`
+* **Deployment**: Vercel
 
-## Built with
+---
 
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
+## Roadmap & Upcoming Features
+
+To make MicCheck AI the end-to-end standard for vocal asset validation, the following features are currently under active development:
+
+- [ ] **User Authentication & Cloud Persistence**: Dedicated creator profiles to access history across devices.
+- [ ] **Multi-Language Support (i18n)**: Native UI support for global creators (French, English, Arabic, etc.).
+- [ ] **Automated Audio Enhancement**: One-click background noise removal and automated LUFS normalization.
+
+---
+
+## Local Development Setup
+
+### Prerequisites
+
+Ensure you have [Node.js](https://nodejs.org/) (v18+ recommended) and `npm` installed.
+
+### Installation
+
+1. **Clone the repository:**
+   ```sh
+   git clone <this-repository-url>
+   cd <repository-name>
