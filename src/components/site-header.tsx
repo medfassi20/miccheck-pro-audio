@@ -25,6 +25,7 @@ export function SiteHeader() {
         >
           Try for free
         </Link>
+        <ThemeToggle/>
       </div>
     </header>
   );
