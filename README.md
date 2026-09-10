@@ -42,6 +42,30 @@ Ensure you have [Node.js](https://nodejs.org/) (v18+ recommended) and `npm` inst
 ### Installation
 
 1. **Clone the repository:**
-   ```sh
+```sh
    git clone <this-repository-url>
    cd <repository-name>
+```
+
+2. **Install dependencies:**
+```bash
+   npm install
+```
+
+3. **Start the local development server:**
+```bash
+   npm run dev
+```
+
+### Project Structure
+
+```plaintext
+├── src/
+│   ├── components/       # Reusable UI components (SiteHeader, ThemeToggle, AuditReport, etc.)
+│   ├── routes/           # TanStack file-based routing system (/workspace, etc.)
+│   └── lib/              # Audio processing and analysis algorithms
+├── public/               # Static assets
+└── tailwind.config.js    # Theme and dark mode configuration
+```
+
+Built with [Lovable](https://lovable.dev) and maintained for high-performance audio verification.
