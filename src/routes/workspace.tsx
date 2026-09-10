@@ -152,12 +152,6 @@ function Workspace() {
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-primary/20 px-3 py-1.5 text-xs font-bold text-primary border border-primary/30">
                   <CheckCircle2 className="size-3.5" /> Already Subscribed
                 </span>
-                <button
-                  onClick={handleSwitchToFree}
-                  className="text-xs text-muted-foreground hover:text-foreground underline transition-colors cursor-pointer"
-                >
-                  Revenir au plan Gratuit
-                </button>
               </div>
             </>
           ) : (
