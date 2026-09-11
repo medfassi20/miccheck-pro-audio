@@ -1,14 +1,6 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
 User-agent: *
 Allow: /
+
+# Host & Sitemap location
+Host: https://miccheck-pro-audio.vercel.app
+Sitemap: https://miccheck-pro-audio.vercel.app/sitemap.xml
