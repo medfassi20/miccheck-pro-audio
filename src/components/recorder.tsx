@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Mic, Square, RefreshCw } from "lucide-react";
 
 interface RecorderProps {
@@ -12,11 +12,23 @@ export function Recorder({ onReady, onReset, disabled = false }: RecorderProps) 
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  // Nettoyage de la mémoire au démontage du composant
+  useEffect(() => {
+    return () => {
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [audioUrl]);
 
   const startRecording = async () => {
     if (disabled) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
       mediaRecorderRef.current = new MediaRecorder(stream);
       chunksRef.current = [];
 
@@ -26,6 +38,7 @@ export function Recorder({ onReady, onReset, disabled = false }: RecorderProps) 
 
       mediaRecorderRef.current.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        if (audioUrl) URL.revokeObjectURL(audioUrl); // Libère l'ancien URL
         const url = URL.createObjectURL(blob);
         setAudioUrl(url);
         onReady("live_recording.webm", blob.size);
@@ -41,13 +54,16 @@ export function Recorder({ onReady, onReset, disabled = false }: RecorderProps) 
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
       setIsRecording(false);
     }
   };
 
   const handleReRecord = () => {
     if (disabled) return;
+    if (audioUrl) URL.revokeObjectURL(audioUrl);
     setAudioUrl(null);
     if (onReset) onReset();
   };
@@ -63,7 +79,7 @@ export function Recorder({ onReady, onReset, disabled = false }: RecorderProps) 
             className={`flex size-16 items-center justify-center rounded-full transition-all ${
               disabled
                 ? "cursor-not-allowed border border-border bg-secondary/40 text-muted-foreground opacity-50"
-                : "cursor-pointer bg-gradient-primary text-primary-foreground hover:scale-105"
+                : "cursor-pointer bg-gradient-primary text-primary-foreground hover:scale-105 shadow-glow"
             }`}
             title={disabled ? "Free limit reached" : "Start recording"}
           >
@@ -85,7 +101,7 @@ export function Recorder({ onReady, onReset, disabled = false }: RecorderProps) 
           <button
             type="button"
             onClick={stopRecording}
-            className="flex size-16 cursor-pointer items-center justify-center rounded-full bg-destructive text-destructive-foreground animate-pulse"
+            className="flex size-16 cursor-pointer items-center justify-center rounded-full bg-destructive text-destructive-foreground animate-pulse shadow-glow"
             title="Stop recording"
           >
             <Square className="size-7" />
