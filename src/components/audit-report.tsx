@@ -26,28 +26,40 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
         allowTaint: true,
         logging: false,
         backgroundColor: "#090d16",
-        // Nettoyage des couleurs OKLCH pour html2canvas
         onclone: (clonedDoc) => {
+          // 1. Supprimer les balises <style> injectées qui contiennent du oklab/oklch global
+          const styles = clonedDoc.querySelectorAll("style");
+          styles.forEach((style) => {
+            if (
+              style.innerHTML.includes("oklab") ||
+              style.innerHTML.includes("oklch")
+            ) {
+              style.innerHTML = style.innerHTML
+                .replace(/oklab\([^)]+\)/g, "#000000")
+                .replace(/oklch\([^)]+\)/g, "#000000");
+            }
+          });
+
+          // 2. Nettoyer les inline styles de tous les éléments du composant
           const allElements = clonedDoc.querySelectorAll("*");
-          allElements.forEach((el) => {
-            const computedStyle = window.getComputedStyle(el);
+          allElements.forEach((node) => {
+            const el = node as HTMLElement;
             
-            // Forcer les couleurs calculées au format standard RGB/HEX
-            if (computedStyle.color && computedStyle.color.includes("oklch")) {
-              (el as HTMLElement).style.color = "#ffffff";
+            // Si le style contient des variables ou fonctions oklab/oklch, on force un fallback en HEX
+            const styleAttr = el.getAttribute("style") || "";
+            if (styleAttr.includes("oklab") || styleAttr.includes("oklch")) {
+              el.setAttribute(
+                "style",
+                styleAttr
+                  .replace(/oklab\([^)]+\)/g, "#1e293b")
+                  .replace(/oklch\([^)]+\)/g, "#1e293b")
+              );
             }
-            if (
-              computedStyle.backgroundColor &&
-              computedStyle.backgroundColor.includes("oklch")
-            ) {
-              (el as HTMLElement).style.backgroundColor = "#0d1322";
-            }
-            if (
-              computedStyle.borderColor &&
-              computedStyle.borderColor.includes("oklch")
-            ) {
-              (el as HTMLElement).style.borderColor = "#1e293b";
-            }
+
+            // Réinitialiser les couleurs principales au format basique
+            el.style.color = window.getComputedStyle(el).color.includes("ok") 
+              ? "#ffffff" 
+              : el.style.color;
           });
         },
       });
@@ -69,7 +81,7 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
 
     } catch (error) {
       console.error("Détail de l'erreur PDF :", error);
-      alert("Erreur lors de la génération. Réessayez.");
+      alert("Impossible de générer le PDF avec html2canvas.");
     } finally {
       setIsGenerating(false);
     }
