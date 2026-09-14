@@ -25,14 +25,17 @@ export const Route = createFileRoute("/workspace")({
         content: "Instant voice quality audit: SNR, voice activity, true peak and LUFS.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://miccheck-pro-audio.lovable.app/workspace" },
+      { property: "og:url", content: "https://miccheck-pro-audio.vercel.app/workspace" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
-    links: [{ rel: "canonical", href: "https://miccheck-pro-audio.lovable.app/workspace" }],
+    links: [{ rel: "canonical", href: "https://miccheck-pro-audio.vercel.app/workspace" }],
   }),
 });
 
-type Stage = { kind: "idle" } | { kind: "analyzing"; file: string; size: number } | { kind: "done"; report: Report };
+type Stage =
+  | { kind: "idle" }
+  | { kind: "analyzing"; file: string; size: number }
+  | { kind: "done"; report: Report };
 
 function Workspace() {
   const [stage, setStage] = useState<Stage>({ kind: "idle" });
@@ -42,73 +45,69 @@ function Workspace() {
   const [mode, setMode] = useState<"record" | "upload">("record");
 
   // Synchronisation au montage : statut Pro et crédits mensuels
-useEffect(() => {
-  setIsMounted(true);
+  useEffect(() => {
+    setIsMounted(true);
 
-  const verifyLicense = async (key: string) => {
-    try {
-      const res = await fetch("https://api.gumroad.com/v2/licenses/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          product_id: "1tKyAaR79VgRgEMjGRZjEg==", // Ton Product ID issu de l'image
-          license_key: key,
-        }),
-      });
+    const verifyLicense = async (key: string) => {
+      try {
+        const res = await fetch("https://api.gumroad.com/v2/licenses/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            product_id: "1tKyAaR79VgRgEMjGRZjEg==",
+            license_key: key,
+          }),
+        });
 
-      const data = await res.json();
+        const data = await res.json();
 
-      // Vérifie si la licence est valide et si l'abonnement est actif
-      if (data.success && !data.purchase.subscription_cancelled_at) {
-        localStorage.setItem("miccheck_is_pro", "true");
-        localStorage.setItem("miccheck_license_key", key);
-        sessionStorage.setItem("miccheck_is_pro", "true");
-        setIsPro(true);
-      } else {
-        // Licence invalide ou annulée -> Rétrogradation automatique
-        localStorage.removeItem("miccheck_is_pro");
-        localStorage.removeItem("miccheck_license_key");
-        sessionStorage.removeItem("miccheck_is_pro");
-        setIsPro(false);
+        if (data.success && !data.purchase.subscription_cancelled_at) {
+          localStorage.setItem("miccheck_is_pro", "true");
+          localStorage.setItem("miccheck_license_key", key);
+          sessionStorage.setItem("miccheck_is_pro", "true");
+          setIsPro(true);
+        } else {
+          localStorage.removeItem("miccheck_is_pro");
+          localStorage.removeItem("miccheck_license_key");
+          sessionStorage.removeItem("miccheck_is_pro");
+          setIsPro(false);
+        }
+      } catch {
+        const savedPro = localStorage.getItem("miccheck_is_pro") === "true";
+        setIsPro(savedPro);
       }
-    } catch {
-      // En cas d'erreur réseau, on se fie au dernier état enregistré localement
-      const savedPro = localStorage.getItem("miccheck_is_pro") === "true";
-      setIsPro(savedPro);
-    }
-  };
+    };
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const licenseParam = urlParams.get("license");
+    const urlParams = new URLSearchParams(window.location.search);
+    const licenseParam = urlParams.get("license");
 
-  if (licenseParam) {
-    verifyLicense(licenseParam);
-    // Nettoyer l'URL
-    window.history.replaceState({}, document.title, window.location.pathname);
-  } else {
-    const savedKey = localStorage.getItem("miccheck_license_key");
-    if (savedKey) {
-      verifyLicense(savedKey);
+    if (licenseParam) {
+      verifyLicense(licenseParam);
+      window.history.replaceState({}, document.title, window.location.pathname);
     } else {
-      const savedPro = localStorage.getItem("miccheck_is_pro") === "true";
-      setIsPro(savedPro);
+      const savedKey = localStorage.getItem("miccheck_license_key");
+      if (savedKey) {
+        verifyLicense(savedKey);
+      } else {
+        const savedPro = localStorage.getItem("miccheck_is_pro") === "true";
+        setIsPro(savedPro);
+      }
     }
-  }
 
-  // Gestion des crédits gratuits
-  const currentMonth = new Date().toISOString().slice(0, 7);
-  const savedMonth = localStorage.getItem("miccheck_last_usage_month");
-  const rawUsed = localStorage.getItem("miccheck_usage_count");
+    // Gestion des crédits gratuits
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const savedMonth = localStorage.getItem("miccheck_last_usage_month");
+    const rawUsed = localStorage.getItem("miccheck_usage_count");
 
-  if (!savedMonth || savedMonth !== currentMonth) {
-    localStorage.setItem("miccheck_last_usage_month", currentMonth);
-    localStorage.setItem("miccheck_usage_count", "0");
-    setRemaining(3);
-  } else {
-    const used = parseInt(rawUsed || "0", 10);
-    setRemaining(Math.max(0, 3 - used));
-  }
-}, []);
+    if (!savedMonth || savedMonth !== currentMonth) {
+      localStorage.setItem("miccheck_last_usage_month", currentMonth);
+      localStorage.setItem("miccheck_usage_count", "0");
+      setRemaining(3);
+    } else {
+      const used = parseInt(rawUsed || "0", 10);
+      setRemaining(Math.max(0, 3 - used));
+    }
+  }, []);
 
   const startAnalysis = (name: string, size: number) => {
     if (isPro) {
@@ -133,10 +132,13 @@ useEffect(() => {
     setStage({ kind: "analyzing", file: name, size });
   };
 
-  const handleSwitchToFree = () => {
-    sessionStorage.removeItem("miccheck_is_pro");
-    setIsPro(false);
-  };
+  // FONCTION FINISH AJOUTÉE & STABILISÉE
+  const finish = useCallback(() => {
+    if (stage.kind === "analyzing") {
+      const report = buildReport(stage.file, stage.size);
+      setStage({ kind: "done", report });
+    }
+  }, [stage]);
 
   const isLimitReached = isMounted && !isPro && remaining === 0;
 
@@ -168,11 +170,11 @@ useEffect(() => {
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-4">
           {isPro ? (
             <>
-              <p className="text-sm font-semibold text-primary flex items-center gap-2">
+              <p className="flex items-center gap-2 text-sm font-semibold text-primary">
                 <CheckCircle2 className="size-4" /> Pro Member — Unlimited voice quality audits active
               </p>
               <div className="flex items-center gap-3">
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-primary/20 px-3 py-1.5 text-xs font-bold text-primary border border-primary/30">
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/20 px-3 py-1.5 text-xs font-bold text-primary">
                   <CheckCircle2 className="size-3.5" /> Already Subscribed
                 </span>
               </div>
@@ -202,6 +204,7 @@ useEffect(() => {
             <div className="mb-6 inline-flex rounded-xl border border-border bg-secondary p-1 text-sm">
               {(["record", "upload"] as const).map((m) => (
                 <button
+                  type="button"
                   key={m}
                   onClick={() => setMode(m)}
                   className={`rounded-lg px-4 py-2 font-semibold transition-colors ${
@@ -233,6 +236,7 @@ useEffect(() => {
             )}
           </>
         )}
+
         {stage.kind === "analyzing" && <Analyzing fileName={stage.file} onDone={finish} />}
         {stage.kind === "done" && (
           <AuditReport
