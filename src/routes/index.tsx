@@ -73,9 +73,9 @@ function Landing() {
   const [isPro, setIsPro] = useState(false);
 
   useEffect(() => {
-    // Vérification du statut Pro dans le localStorage (si stocké côté client)
-    const storedPlan = localStorage.getItem("user_plan");
-    if (storedPlan === "pro" || storedPlan === "PRO") {
+    // Vérification basée sur le localStorage (ex: miccheck_plan = "pro")
+    const plan = localStorage.getItem("miccheck_plan") || localStorage.getItem("is_pro");
+    if (plan === "pro" || plan === "true") {
       setIsPro(true);
     }
   }, []);
