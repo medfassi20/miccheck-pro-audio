@@ -14,6 +14,8 @@ export function UploadZone({ onFile, disabled = false }: UploadZoneProps) {
     const file = e.target.files?.[0];
     if (file) {
       onFile(file.name, file.size);
+      // Permet d'uploader à nouveau le même fichier s'il est re-sélectionné
+      e.target.value = "";
     }
   };
 
