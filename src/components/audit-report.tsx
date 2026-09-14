@@ -4,47 +4,25 @@ import { Download, RefreshCw, Loader2, CheckCircle2, XCircle } from "lucide-reac
 import type { Report } from "@/lib/analysis";
 
 interface AuditReportProps {
-  report: Report & Record<string, any>;
+  report: Report;
   onReset: () => void;
 }
 
 export function AuditReport({ report, onReset }: AuditReportProps) {
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // LOG de débogage rapide
-  console.log("MicCheck Report Data:", report);
+  // 1. Extraire les métriques de votre tableau report.metrics
+  const getMetricValue = (id: string) => {
+    const metric = report.metrics?.find((m) => m.id === id);
+    return metric ? metric.value : "N/A";
+  };
 
-  // 1. Extraction robuste de la valeur LUFS
-  const rawLufs = 
-    report.lufs ?? 
-    report.integratedLoudness ?? 
-    report.loudness ?? 
-    report.metrics?.lufs ?? 
-    report.metrics?.integratedLoudness ?? 
-    report.data?.lufs;
+  const lufsVal = getMetricValue("lufs");
+  const snrVal = getMetricValue("snr");
+  const peakVal = getMetricValue("peak");
+  const vadVal = getMetricValue("vad");
 
-  const lufsVal = typeof rawLufs === "number" ? rawLufs.toFixed(1) : (rawLufs ?? "N/A");
-
-  // 2. Extraction robuste de la valeur SNR
-  const rawSnr = 
-    report.snr ?? 
-    report.snrRatio ?? 
-    report.signalToNoise ?? 
-    report.metrics?.snr ?? 
-    report.metrics?.snrRatio ?? 
-    report.data?.snr;
-
-  const snrVal = typeof rawSnr === "number" ? rawSnr.toFixed(1) : (rawSnr ?? "N/A");
-
-  // 3. Détermination du statut PASS / FAIL
-  const isPassed = 
-    report.passed === true || 
-    report.status === "PASS" || 
-    report.verdict === "PASS" || 
-    report.isPass === true ||
-    (typeof rawLufs === "number" && rawLufs >= -24 && rawLufs <= -14);
-
-  const fileName = report.fileName || report.name || report.file?.name || "live_recording.webm";
+  const isPassed = report.verdict === "pass";
 
   const handleExportPDF = () => {
     try {
@@ -56,7 +34,7 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
         format: "a4",
       });
 
-      // Style Colors
+      // Couleurs
       const primaryColor: [number, number, number] = [15, 23, 42];
       const accentColor: [number, number, number] = [99, 102, 241];
       const textColor: [number, number, number] = [51, 65, 85];
@@ -64,7 +42,7 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
       const passColor: [number, number, number] = [34, 197, 94];
       const failColor: [number, number, number] = [239, 68, 68];
 
-      // Header Banner
+      // En-tête / Header
       pdf.setFillColor(...primaryColor);
       pdf.rect(0, 0, 210, 35, "F");
 
@@ -78,7 +56,7 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
       pdf.text("Voice Quality Audit Report", 15, 26);
       pdf.text(new Date().toLocaleDateString("fr-FR"), 195, 20, { align: "right" });
 
-      // Audit Details
+      // Détails du fichier
       let y = 48;
       pdf.setTextColor(...primaryColor);
       pdf.setFont("helvetica", "bold");
@@ -89,52 +67,97 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
       pdf.setFont("helvetica", "normal");
       pdf.setFontSize(10);
       pdf.setTextColor(...textColor);
-      pdf.text(`File Name: ${fileName}`, 15, y);
+      pdf.text(`File Name: ${report.fileName}`, 15, y);
+      pdf.text(`Duration: ${report.duration}`, 120, y);
 
-      // Status Badge
+      // Badge de Verdict (PASS / FAIL)
       y += 12;
       const badgeColor = isPassed ? passColor : failColor;
       pdf.setFillColor(...badgeColor);
-      pdf.roundedRect(15, y, 42, 10, 2, 2, "F");
+      pdf.roundedRect(15, y, 45, 10, 2, 2, "F");
       pdf.setTextColor(255, 255, 255);
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(10);
       pdf.text(isPassed ? "VERDICT: PASS" : "VERDICT: FAIL", 18, y + 6.5);
 
-      // Cards Grid
+      // Metriques en Grille
       y += 18;
 
-      // Card 1 : LUFS
+      // Card 1: Loudness
       pdf.setFillColor(...lightBg);
-      pdf.roundedRect(15, y, 85, 32, 3, 3, "F");
+      pdf.roundedRect(15, y, 85, 30, 3, 3, "F");
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(9);
       pdf.setTextColor(...accentColor);
-      pdf.text("LOUDNESS (LUFS)", 22, y + 11);
-      pdf.setFontSize(16);
+      pdf.text("INTEGRATED LOUDNESS", 22, y + 10);
+      pdf.setFontSize(15);
       pdf.setTextColor(...primaryColor);
-      pdf.text(`${lufsVal} LUFS`, 22, y + 23);
+      pdf.text(lufsVal, 22, y + 22);
 
-      // Card 2 : SNR
+      // Card 2: SNR
       pdf.setFillColor(...lightBg);
-      pdf.roundedRect(110, y, 85, 32, 3, 3, "F");
+      pdf.roundedRect(110, y, 85, 30, 3, 3, "F");
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(9);
       pdf.setTextColor(...accentColor);
-      pdf.text("SNR RATIO", 117, y + 11);
-      pdf.setFontSize(16);
+      pdf.text("SIGNAL-TO-NOISE RATIO", 117, y + 10);
+      pdf.setFontSize(15);
       pdf.setTextColor(...primaryColor);
-      pdf.text(`${snrVal} dB`, 117, y + 23);
+      pdf.text(snrVal, 117, y + 22);
 
-      // Footer
+      y += 35;
+
+      // Card 3: True Peak
+      pdf.setFillColor(...lightBg);
+      pdf.roundedRect(15, y, 85, 30, 3, 3, "F");
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(9);
+      pdf.setTextColor(...accentColor);
+      pdf.text("TRUE PEAK LEVEL", 22, y + 10);
+      pdf.setFontSize(15);
+      pdf.setTextColor(...primaryColor);
+      pdf.text(peakVal, 22, y + 22);
+
+      // Card 4: Voice Activity
+      pdf.setFillColor(...lightBg);
+      pdf.roundedRect(110, y, 85, 30, 3, 3, "F");
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(9);
+      pdf.setTextColor(...accentColor);
+      pdf.text("VOICE ACTIVITY", 117, y + 10);
+      pdf.setFontSize(15);
+      pdf.setTextColor(...primaryColor);
+      pdf.text(vadVal, 117, y + 22);
+
+      // Résumé / Summary
+      y += 40;
+      pdf.setTextColor(...primaryColor);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(12);
+      pdf.text("Summary", 15, y);
+
+      y += 6;
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(10);
+      pdf.setTextColor(...textColor);
+      
+      const splitSummary = pdf.splitTextToSize(report.summary, 180);
+      pdf.text(splitSummary, 15, y);
+
+      // Pied de page / Footer
       pdf.setFontSize(8);
       pdf.setTextColor(148, 163, 184);
-      pdf.text("Generated by MicCheck AI — Automatic Audio Quality Analyzer", 105, 285, { align: "center" });
+      pdf.text(
+        "Generated by MicCheck AI — Automatic Audio Quality Analyzer",
+        105,
+        285,
+        { align: "center" }
+      );
 
       pdf.save(`MicCheck_Audit_${Date.now()}.pdf`);
     } catch (error) {
-      console.error("Erreur PDF:", error);
-      alert("Erreur lors de la génération du PDF.");
+      console.error("Erreur génération PDF:", error);
+      alert("Erreur lors de la création du PDF.");
     } finally {
       setIsGenerating(false);
     }
@@ -145,8 +168,10 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
       <div className="rounded-2xl border border-border bg-card p-6 shadow-xl">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold">Voice Audit Summary</h2>
-            <p className="text-sm text-muted-foreground">File: {fileName}</p>
+            <h2 className="text-xl font-bold">{report.headline}</h2>
+            <p className="text-sm text-muted-foreground">
+              File: {report.fileName} ({report.duration})
+            </p>
           </div>
           <div
             className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${
@@ -156,22 +181,31 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
             }`}
           >
             {isPassed ? <CheckCircle2 className="size-4" /> : <XCircle className="size-4" />}
-            {isPassed ? "PASSED" : "FAILED"}
+            {report.verdict.toUpperCase()}
           </div>
         </div>
 
+        <p className="mt-3 text-sm text-muted-foreground">{report.summary}</p>
+
+        {/* Grille des Métriques */}
         <div className="mt-6 grid grid-cols-2 gap-4">
-          <div className="rounded-xl border border-border/50 bg-secondary/50 p-4">
-            <span className="text-xs text-muted-foreground">Loudness (LUFS)</span>
-            <p className="text-lg font-bold">{lufsVal} LUFS</p>
-          </div>
-          <div className="rounded-xl border border-border/50 bg-secondary/50 p-4">
-            <span className="text-xs text-muted-foreground">SNR Ratio</span>
-            <p className="text-lg font-bold">{snrVal} dB</p>
-          </div>
+          {report.metrics?.map((metric) => (
+            <div
+              key={metric.id}
+              className="rounded-xl border border-border/50 bg-secondary/50 p-4"
+            >
+              <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
+                <span>{metric.label}</span>
+                <span className="font-mono">{metric.target}</span>
+              </div>
+              <p className="text-lg font-bold">{metric.value}</p>
+              <p className="text-xs text-muted-foreground mt-1">{metric.note}</p>
+            </div>
+          ))}
         </div>
       </div>
 
+      {/* Actions */}
       <div className="flex items-center gap-3">
         <button
           type="button"
