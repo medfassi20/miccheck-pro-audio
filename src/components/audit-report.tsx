@@ -1,6 +1,5 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import { Download, RefreshCw, Loader2 } from "lucide-react";
 import type { Report } from "@/lib/analysis";
 
@@ -10,78 +9,94 @@ interface AuditReportProps {
 }
 
 export function AuditReport({ report, onReset }: AuditReportProps) {
-  const reportRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleExportPDF = async () => {
-    const targetElement = reportRef.current;
-    if (!targetElement) return;
-
+  const handleExportPDF = () => {
     try {
       setIsGenerating(true);
 
-      const canvas = await html2canvas(targetElement, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        backgroundColor: "#090d16",
-        onclone: (clonedDoc) => {
-          // 1. Supprimer les balises <style> injectées qui contiennent du oklab/oklch global
-          const styles = clonedDoc.querySelectorAll("style");
-          styles.forEach((style) => {
-            if (
-              style.innerHTML.includes("oklab") ||
-              style.innerHTML.includes("oklch")
-            ) {
-              style.innerHTML = style.innerHTML
-                .replace(/oklab\([^)]+\)/g, "#000000")
-                .replace(/oklch\([^)]+\)/g, "#000000");
-            }
-          });
-
-          // 2. Nettoyer les inline styles de tous les éléments du composant
-          const allElements = clonedDoc.querySelectorAll("*");
-          allElements.forEach((node) => {
-            const el = node as HTMLElement;
-            
-            // Si le style contient des variables ou fonctions oklab/oklch, on force un fallback en HEX
-            const styleAttr = el.getAttribute("style") || "";
-            if (styleAttr.includes("oklab") || styleAttr.includes("oklch")) {
-              el.setAttribute(
-                "style",
-                styleAttr
-                  .replace(/oklab\([^)]+\)/g, "#1e293b")
-                  .replace(/oklch\([^)]+\)/g, "#1e293b")
-              );
-            }
-
-            // Réinitialiser les couleurs principales au format basique
-            el.style.color = window.getComputedStyle(el).color.includes("ok") 
-              ? "#ffffff" 
-              : el.style.color;
-          });
-        },
-      });
-
-      const imgData = canvas.toDataURL("image/png");
-
+      // 1. Initialisation du document jsPDF (A4)
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
         format: "a4",
       });
 
-      const imgWidth = 210;
-      const pageHeight = 297;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      // --- STYLES & COULEURS ---
+      const primaryColor: [number, number, number] = [15, 23, 42]; // Slate 900
+      const accentColor: [number, number, number] = [99, 102, 241]; // Indigo 500
+      const textColor: [number, number, number] = [51, 65, 85]; // Slate 700
+      const lightBg: [number, number, number] = [248, 250, 252]; // Slate 50
 
-      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, Math.min(imgHeight, pageHeight));
+      // --- EN-TÊTE ---
+      pdf.setFillColor(...primaryColor);
+      pdf.rect(0, 0, 210, 35, "F");
+
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(22);
+      pdf.text("MicCheck AI", 15, 18);
+
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "normal");
+      pdf.text("Voice Quality Audit Report", 15, 26);
+
+      pdf.text(new Date().toLocaleDateString("fr-FR"), 195, 20, { align: "right" });
+
+      // --- DÉTAILS DU FICHIER ---
+      let y = 48;
+      pdf.setTextColor(...primaryColor);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(14);
+      pdf.text("Audit Details", 15, y);
+
+      y += 8;
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(10);
+      pdf.setTextColor(...textColor);
+      pdf.text(`File Name: ${report.fileName || "Live Recording"}`, 15, y);
+
+      // --- BLOCS DE MÉTRIQUES ---
+      y += 15;
+
+      // Card 1 : Loudness (LUFS)
+      pdf.setFillColor(...lightBg);
+      pdf.roundedRect(15, y, 85, 30, 3, 3, "F");
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(9);
+      pdf.setTextColor(...accentColor);
+      pdf.text("LOUDNESS (LUFS)", 22, y + 10);
+      pdf.setFontSize(16);
+      pdf.setTextColor(...primaryColor);
+      pdf.text(`${report.lufs} LUFS`, 22, y + 22);
+
+      // Card 2 : SNR Ratio
+      pdf.setFillColor(...lightBg);
+      pdf.roundedRect(110, y, 85, 30, 3, 3, "F");
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(9);
+      pdf.setTextColor(...accentColor);
+      pdf.text("SNR RATIO", 117, y + 10);
+      pdf.setFontSize(16);
+      pdf.setTextColor(...primaryColor);
+      pdf.text(`${report.snr} dB`, 117, y + 22);
+
+      // --- FOOTER ---
+      pdf.setFontSize(8);
+      pdf.setTextColor(148, 163, 184);
+      pdf.text(
+        "Generated by MicCheck AI — Automatic Audio Quality Analyzer",
+        105,
+        285,
+        { align: "center" }
+      );
+
+      // 4. Téléchargement immédiat
       pdf.save(`MicCheck_Audit_${Date.now()}.pdf`);
 
     } catch (error) {
-      console.error("Détail de l'erreur PDF :", error);
-      alert("Impossible de générer le PDF avec html2canvas.");
+      console.error("Erreur lors de la génération du PDF :", error);
+      alert("Erreur lors de la création du PDF.");
     } finally {
       setIsGenerating(false);
     }
@@ -89,7 +104,8 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
 
   return (
     <div className="space-y-6">
-      <div ref={reportRef} className="rounded-2xl border border-border bg-card p-6 shadow-xl">
+      {/* Zone du rapport affichée à l'écran */}
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-xl">
         <h2 className="text-xl font-bold">Voice Audit Summary</h2>
         <p className="text-sm text-muted-foreground">File: {report.fileName}</p>
 
@@ -105,6 +121,7 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
         </div>
       </div>
 
+      {/* Actions */}
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -120,7 +137,7 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
           ) : (
             <>
               <Download className="size-4" />
-              Download Report
+              Download PDF
             </>
           )}
         </button>
