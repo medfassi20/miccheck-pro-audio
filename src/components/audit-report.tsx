@@ -4,18 +4,47 @@ import { Download, RefreshCw, Loader2, CheckCircle2, XCircle } from "lucide-reac
 import type { Report } from "@/lib/analysis";
 
 interface AuditReportProps {
-  report: Report & Record<string, any>; // Permet de lire des propriétés flexibles
+  report: Report & Record<string, any>;
   onReset: () => void;
 }
 
 export function AuditReport({ report, onReset }: AuditReportProps) {
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Extraire les valeurs avec des fallbacks selon la structure de ton objet `report`
-  const lufsVal = report.lufs ?? report.lufsIntegrated ?? report.metrics?.lufs ?? "N/A";
-  const snrVal = report.snr ?? report.snrRatio ?? report.metrics?.snr ?? "N/A";
-  const status = report.status ?? report.verdict ?? (report.passed ? "PASS" : "FAIL");
-  const isPassed = String(status).toUpperCase().includes("PASS") || report.passed === true;
+  // LOG de débogage rapide
+  console.log("MicCheck Report Data:", report);
+
+  // 1. Extraction robuste de la valeur LUFS
+  const rawLufs = 
+    report.lufs ?? 
+    report.integratedLoudness ?? 
+    report.loudness ?? 
+    report.metrics?.lufs ?? 
+    report.metrics?.integratedLoudness ?? 
+    report.data?.lufs;
+
+  const lufsVal = typeof rawLufs === "number" ? rawLufs.toFixed(1) : (rawLufs ?? "N/A");
+
+  // 2. Extraction robuste de la valeur SNR
+  const rawSnr = 
+    report.snr ?? 
+    report.snrRatio ?? 
+    report.signalToNoise ?? 
+    report.metrics?.snr ?? 
+    report.metrics?.snrRatio ?? 
+    report.data?.snr;
+
+  const snrVal = typeof rawSnr === "number" ? rawSnr.toFixed(1) : (rawSnr ?? "N/A");
+
+  // 3. Détermination du statut PASS / FAIL
+  const isPassed = 
+    report.passed === true || 
+    report.status === "PASS" || 
+    report.verdict === "PASS" || 
+    report.isPass === true ||
+    (typeof rawLufs === "number" && rawLufs >= -24 && rawLufs <= -14);
+
+  const fileName = report.fileName || report.name || report.file?.name || "live_recording.webm";
 
   const handleExportPDF = () => {
     try {
@@ -27,7 +56,7 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
         format: "a4",
       });
 
-      // Colors
+      // Style Colors
       const primaryColor: [number, number, number] = [15, 23, 42];
       const accentColor: [number, number, number] = [99, 102, 241];
       const textColor: [number, number, number] = [51, 65, 85];
@@ -35,7 +64,7 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
       const passColor: [number, number, number] = [34, 197, 94];
       const failColor: [number, number, number] = [239, 68, 68];
 
-      // Header
+      // Header Banner
       pdf.setFillColor(...primaryColor);
       pdf.rect(0, 0, 210, 35, "F");
 
@@ -49,7 +78,7 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
       pdf.text("Voice Quality Audit Report", 15, 26);
       pdf.text(new Date().toLocaleDateString("fr-FR"), 195, 20, { align: "right" });
 
-      // File Details
+      // Audit Details
       let y = 48;
       pdf.setTextColor(...primaryColor);
       pdf.setFont("helvetica", "bold");
@@ -60,42 +89,42 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
       pdf.setFont("helvetica", "normal");
       pdf.setFontSize(10);
       pdf.setTextColor(...textColor);
-      pdf.text(`File Name: ${report.fileName || "Live Recording"}`, 15, y);
+      pdf.text(`File Name: ${fileName}`, 15, y);
 
-      // Status Badge (PASS / FAIL)
+      // Status Badge
       y += 12;
       const badgeColor = isPassed ? passColor : failColor;
       pdf.setFillColor(...badgeColor);
-      pdf.roundedRect(15, y, 40, 10, 2, 2, "F");
+      pdf.roundedRect(15, y, 42, 10, 2, 2, "F");
       pdf.setTextColor(255, 255, 255);
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(10);
       pdf.text(isPassed ? "VERDICT: PASS" : "VERDICT: FAIL", 18, y + 6.5);
 
-      // Metrics Cards
+      // Cards Grid
       y += 18;
 
-      // Card 1: Loudness
+      // Card 1 : LUFS
       pdf.setFillColor(...lightBg);
-      pdf.roundedRect(15, y, 85, 30, 3, 3, "F");
+      pdf.roundedRect(15, y, 85, 32, 3, 3, "F");
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(9);
       pdf.setTextColor(...accentColor);
-      pdf.text("LOUDNESS (LUFS)", 22, y + 10);
+      pdf.text("LOUDNESS (LUFS)", 22, y + 11);
       pdf.setFontSize(16);
       pdf.setTextColor(...primaryColor);
-      pdf.text(`${lufsVal} LUFS`, 22, y + 22);
+      pdf.text(`${lufsVal} LUFS`, 22, y + 23);
 
-      // Card 2: SNR
+      // Card 2 : SNR
       pdf.setFillColor(...lightBg);
-      pdf.roundedRect(110, y, 85, 30, 3, 3, "F");
+      pdf.roundedRect(110, y, 85, 32, 3, 3, "F");
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(9);
       pdf.setTextColor(...accentColor);
-      pdf.text("SNR RATIO", 117, y + 10);
+      pdf.text("SNR RATIO", 117, y + 11);
       pdf.setFontSize(16);
       pdf.setTextColor(...primaryColor);
-      pdf.text(`${snrVal} dB`, 117, y + 22);
+      pdf.text(`${snrVal} dB`, 117, y + 23);
 
       // Footer
       pdf.setFontSize(8);
@@ -113,12 +142,11 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
 
   return (
     <div className="space-y-6">
-      {/* Visual Report */}
       <div className="rounded-2xl border border-border bg-card p-6 shadow-xl">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold">Voice Audit Summary</h2>
-            <p className="text-sm text-muted-foreground">File: {report.fileName}</p>
+            <p className="text-sm text-muted-foreground">File: {fileName}</p>
           </div>
           <div
             className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${
@@ -144,7 +172,6 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
         </div>
       </div>
 
-      {/* Actions */}
       <div className="flex items-center gap-3">
         <button
           type="button"
