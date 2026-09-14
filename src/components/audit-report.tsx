@@ -1,7 +1,7 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { Download, RefreshCw } from "lucide-react";
+import { Download, RefreshCw, Loader2 } from "lucide-react";
 import type { Report } from "@/lib/analysis";
 
 interface AuditReportProps {
@@ -11,51 +11,56 @@ interface AuditReportProps {
 
 export function AuditReport({ report, onReset }: AuditReportProps) {
   const reportRef = useRef<HTMLDivElement>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const handleExportPDF = async () => {
     if (!reportRef.current) return;
 
     try {
+      setIsGenerating(true);
+
+      // 1. Capture de la zone sous forme d'image Canvas
       const canvas = await html2canvas(reportRef.current, {
-        scale: 2, 
+        scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: "#090d16",
       });
 
       const imgData = canvas.toDataURL("image/png");
-      
+
+      // 2. Création du PDF A4
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
         format: "a4",
       });
 
-      const imgWidth = 210; // Largeur A4 en mm
-      const pageHeight = 297; // Hauteur A4 en mm
+      const imgWidth = 210;
+      const pageHeight = 297;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
       pdf.addImage(imgData, "PNG", 0, 0, imgWidth, Math.min(imgHeight, pageHeight));
 
-      // 3. Conversion en Blob URL pour ouvrir dans un nouvel onglet
-      const pdfBlob = pdf.output("blob");
-      const blobUrl = URL.createObjectURL(pdfBlob);
+      // 3. FORCE LE TÉLÉCHARGEMENT DIRECT
+      // Cela évite tout blocage des pop-ups par le navigateur
+      pdf.save(`MicCheck_Audit_${Date.now()}.pdf`);
 
-      // 4. Ouverture dans un nouvel onglet
-      window.open(blobUrl, "_blank");
     } catch (error) {
-      console.error("Erreur lors de la génération du PDF :", error);
+      console.error("Erreur lors du téléchargement du PDF :", error);
+      alert("Impossible de générer le PDF. Réessayez ou vérifiez la console.");
+    } finally {
+      setIsGenerating(false);
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Zone du rapport capturée pour le PDF */}
+      {/* Zone capturée pour le PDF */}
       <div ref={reportRef} className="rounded-2xl border border-border bg-card p-6 shadow-xl">
         <h2 className="text-xl font-bold">Voice Audit Summary</h2>
         <p className="text-sm text-muted-foreground">File: {report.fileName}</p>
-        
-        {/* Affichage des métriques (LUFS, SNR, True Peak...) */}
+
         <div className="mt-6 grid grid-cols-2 gap-4">
           <div className="rounded-xl border border-border/50 bg-secondary/50 p-4">
             <span className="text-xs text-muted-foreground">Loudness (LUFS)</span>
@@ -68,15 +73,25 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
         </div>
       </div>
 
-      {/* Barre d'actions */}
+      {/* Boutons d'action */}
       <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={handleExportPDF}
-          className="inline-flex items-center gap-2 rounded-xl bg-gradient-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:-translate-y-0.5 cursor-pointer"
+          disabled={isGenerating}
+          className="inline-flex items-center gap-2 rounded-xl bg-gradient-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:-translate-y-0.5 cursor-pointer disabled:opacity-50"
         >
-          <Download className="size-4" />
-          Export PDF
+          {isGenerating ? (
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              Generating PDF...
+            </>
+          ) : (
+            <>
+              <Download className="size-4" />
+              Download PDF
+            </>
+          )}
         </button>
 
         <button
