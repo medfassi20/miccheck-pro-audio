@@ -14,41 +14,53 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleExportPDF = async () => {
-    if (!reportRef.current) return;
+    const targetElement = reportRef.current;
+    if (!targetElement) {
+      alert("Erreur : L'élément du rapport est introuvable.");
+      return;
+    }
 
     try {
       setIsGenerating(true);
 
-      // 1. Capture de la zone sous forme d'image Canvas
-      const canvas = await html2canvas(reportRef.current, {
+      // 1. Capture du composant avec options de tolérance CORS et dimensions
+      const canvas = await html2canvas(targetElement, {
         scale: 2,
         useCORS: true,
+        allowTaint: true,
         logging: false,
         backgroundColor: "#090d16",
+        windowWidth: targetElement.scrollWidth,
+        windowHeight: targetElement.scrollHeight,
       });
 
+      if (!canvas || canvas.width === 0 || canvas.height === 0) {
+        throw new Error("Le rendu Canvas a généré une image vide.");
+      }
+
+      // 2. Conversion du Canvas en image
       const imgData = canvas.toDataURL("image/png");
 
-      // 2. Création du PDF A4
+      // 3. Configuration du document jsPDF (Format A4)
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
         format: "a4",
       });
 
-      const imgWidth = 210;
-      const pageHeight = 297;
+      const imgWidth = 210; // Largeur A4 en mm
+      const pageHeight = 297; // Hauteur A4 en mm
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
       pdf.addImage(imgData, "PNG", 0, 0, imgWidth, Math.min(imgHeight, pageHeight));
 
-      // 3. FORCE LE TÉLÉCHARGEMENT DIRECT
-      // Cela évite tout blocage des pop-ups par le navigateur
+      // 4. Déclenchement du téléchargement direct
       pdf.save(`MicCheck_Audit_${Date.now()}.pdf`);
 
     } catch (error) {
-      console.error("Erreur lors du téléchargement du PDF :", error);
-      alert("Impossible de générer le PDF. Réessayez ou vérifiez la console.");
+      // Affiche le détail exact de l'erreur dans la console pour le débogage
+      console.error("Détail de l'erreur PDF :", error);
+      alert("Impossible de générer le PDF. Ouvrez la console du navigateur (F12) pour voir le détail de l'erreur.");
     } finally {
       setIsGenerating(false);
     }
@@ -89,7 +101,7 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
           ) : (
             <>
               <Download className="size-4" />
-              Download PDF
+              Download Report
             </>
           )}
         </button>
