@@ -3,6 +3,8 @@ import { Activity, AudioLines, Gauge, ShieldCheck, Waves } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Pricing } from "@/components/pricing";
+// TODO: Remplace cet import par ton hook réel de gestion d'état/plan si disponible
+import { useAuth } from "@/hooks/use-auth"; 
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -69,6 +71,9 @@ const features = [
 ];
 
 function Landing() {
+  // Récupération de l'état Pro (adapte la variable selon ton store / context)
+  const { isPro } = useAuth?.() || { isPro: false };
+
   return (
     <div className="min-h-screen">
       <SiteHeader />
@@ -103,8 +108,16 @@ function Landing() {
                 See pricing
               </a>
             </div>
+
+            {/* Affichage conditionnel selon le statut Pro / Free */}
             <p className="mt-4 text-xs text-muted-foreground">
-              3 free analyses every month. No credit card.
+              {isPro ? (
+                <span className="text-emerald-400 font-medium">
+                  ✓ Pro Plan Active • Unlimited analyses
+                </span>
+              ) : (
+                "3 free analyses every month. No credit card."
+              )}
             </p>
 
             <div className="mt-16 flex h-24 items-end justify-center gap-1.5">
