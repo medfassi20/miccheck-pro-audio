@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Activity, AudioLines, Gauge, ShieldCheck, Waves, Sparkles } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
@@ -22,10 +22,10 @@ export const Route = createFileRoute("/")({
           "Instantly check your voice recordings for background noise, SNR, VAD, and LUFS loudness before publishing.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://miccheck-pro-audio.lovable.app/" },
+      { property: "og:url", content: "https://miccheck-pro-audio.vercel.app/" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
-    links: [{ rel: "canonical", href: "https://miccheck-pro-audio.lovable.app/" }],
+    links: [{ rel: "canonical", href: "https://miccheck-pro-audio.vercel.app/" }],
     scripts: [
       {
         type: "application/ld+json",
@@ -70,8 +70,39 @@ const features = [
 ];
 
 function Landing() {
-  // Remplace ce state par la valeur réelle de ton store/auth si tu en as un (ex: const { isPro } = useAuth();)
-  const [isPro] = useState(false);
+  const [isPro, setIsPro] = useState<boolean>(false);
+
+  // Synchronisation identique au workspace pour vérifier la clé ou le cache local
+  useEffect(() => {
+    const savedPro = localStorage.getItem("miccheck_is_pro") === "true";
+    setIsPro(savedPro);
+
+    const savedKey = localStorage.getItem("miccheck_license_key");
+    if (savedKey) {
+      fetch("https://api.gumroad.com/v2/licenses/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          product_id: "1tKyAaR79VgRgEMjGRZjEg==",
+          license_key: savedKey,
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && !data.purchase.subscription_cancelled_at) {
+            localStorage.setItem("miccheck_is_pro", "true");
+            setIsPro(true);
+          } else {
+            localStorage.removeItem("miccheck_is_pro");
+            localStorage.removeItem("miccheck_license_key");
+            setIsPro(false);
+          }
+        })
+        .catch(() => {
+          setIsPro(savedPro);
+        });
+    }
+  }, []);
 
   return (
     <div className="min-h-screen">
@@ -110,10 +141,10 @@ function Landing() {
               )}
             </div>
 
-            {/* Affichage conditionnel selon le statut Pro / Free */}
+            {/* Texte dynamique selon le statut de l'utilisateur */}
             <p className="mt-4 text-xs text-muted-foreground">
               {isPro ? (
-                <span className="inline-flex items-center gap-1.5 text-emerald-400 font-medium">
+                <span className="inline-flex items-center gap-1.5 font-medium text-emerald-400">
                   <Sparkles className="size-3.5" /> Pro Plan Active — Unlimited voice analyses
                 </span>
               ) : (
