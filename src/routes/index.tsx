@@ -1,9 +1,9 @@
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Activity, AudioLines, Gauge, ShieldCheck, Waves } from "lucide-react";
+import { Activity, AudioLines, Gauge, ShieldCheck, Waves, Sparkles } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Pricing } from "@/components/pricing";
-import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -70,15 +70,8 @@ const features = [
 ];
 
 function Landing() {
-  const [isPro, setIsPro] = useState(false);
-
-  useEffect(() => {
-    // Vérification basée sur le localStorage (ex: miccheck_plan = "pro")
-    const plan = localStorage.getItem("miccheck_plan") || localStorage.getItem("is_pro");
-    if (plan === "pro" || plan === "true") {
-      setIsPro(true);
-    }
-  }, []);
+  // Remplace ce state par la valeur réelle de ton store/auth si tu en as un (ex: const { isPro } = useAuth();)
+  const [isPro] = useState(false);
 
   return (
     <div className="min-h-screen">
@@ -107,21 +100,24 @@ function Landing() {
               >
                 Start Live Check
               </Link>
-              <a
-                href="#pricing"
-                className="rounded-xl border border-border bg-secondary px-7 py-3.5 font-semibold text-secondary-foreground transition-transform hover:-translate-y-0.5"
-              >
-                See pricing
-              </a>
+              {!isPro && (
+                <a
+                  href="#pricing"
+                  className="rounded-xl border border-border bg-secondary px-7 py-3.5 font-semibold text-secondary-foreground transition-transform hover:-translate-y-0.5"
+                >
+                  See pricing
+                </a>
+              )}
             </div>
 
+            {/* Affichage conditionnel selon le statut Pro / Free */}
             <p className="mt-4 text-xs text-muted-foreground">
               {isPro ? (
-                <span className="font-medium text-emerald-400">
-                  ✓ Pro Plan Active • Unlimited analyses
+                <span className="inline-flex items-center gap-1.5 text-emerald-400 font-medium">
+                  <Sparkles className="size-3.5" /> Pro Plan Active — Unlimited voice analyses
                 </span>
               ) : (
-                "3 free analyses every month. No credit card."
+                "3 free analyses every month. No credit card required."
               )}
             </p>
 
