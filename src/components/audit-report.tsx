@@ -15,52 +15,61 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
 
   const handleExportPDF = async () => {
     const targetElement = reportRef.current;
-    if (!targetElement) {
-      alert("Erreur : L'élément du rapport est introuvable.");
-      return;
-    }
+    if (!targetElement) return;
 
     try {
       setIsGenerating(true);
 
-      // 1. Capture du composant avec options de tolérance CORS et dimensions
       const canvas = await html2canvas(targetElement, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         logging: false,
         backgroundColor: "#090d16",
-        windowWidth: targetElement.scrollWidth,
-        windowHeight: targetElement.scrollHeight,
+        // Nettoyage des couleurs OKLCH pour html2canvas
+        onclone: (clonedDoc) => {
+          const allElements = clonedDoc.querySelectorAll("*");
+          allElements.forEach((el) => {
+            const computedStyle = window.getComputedStyle(el);
+            
+            // Forcer les couleurs calculées au format standard RGB/HEX
+            if (computedStyle.color && computedStyle.color.includes("oklch")) {
+              (el as HTMLElement).style.color = "#ffffff";
+            }
+            if (
+              computedStyle.backgroundColor &&
+              computedStyle.backgroundColor.includes("oklch")
+            ) {
+              (el as HTMLElement).style.backgroundColor = "#0d1322";
+            }
+            if (
+              computedStyle.borderColor &&
+              computedStyle.borderColor.includes("oklch")
+            ) {
+              (el as HTMLElement).style.borderColor = "#1e293b";
+            }
+          });
+        },
       });
 
-      if (!canvas || canvas.width === 0 || canvas.height === 0) {
-        throw new Error("Le rendu Canvas a généré une image vide.");
-      }
-
-      // 2. Conversion du Canvas en image
       const imgData = canvas.toDataURL("image/png");
 
-      // 3. Configuration du document jsPDF (Format A4)
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
         format: "a4",
       });
 
-      const imgWidth = 210; // Largeur A4 en mm
-      const pageHeight = 297; // Hauteur A4 en mm
+      const imgWidth = 210;
+      const pageHeight = 297;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
       pdf.addImage(imgData, "PNG", 0, 0, imgWidth, Math.min(imgHeight, pageHeight));
-
-      // 4. Déclenchement du téléchargement direct
       pdf.save(`MicCheck_Audit_${Date.now()}.pdf`);
 
     } catch (error) {
-      // Affiche le détail exact de l'erreur dans la console pour le débogage
       console.error("Détail de l'erreur PDF :", error);
-      alert("Impossible de générer le PDF. Ouvrez la console du navigateur (F12) pour voir le détail de l'erreur.");
+      alert("Erreur lors de la génération. Réessayez.");
     } finally {
       setIsGenerating(false);
     }
@@ -68,7 +77,6 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
 
   return (
     <div className="space-y-6">
-      {/* Zone capturée pour le PDF */}
       <div ref={reportRef} className="rounded-2xl border border-border bg-card p-6 shadow-xl">
         <h2 className="text-xl font-bold">Voice Audit Summary</h2>
         <p className="text-sm text-muted-foreground">File: {report.fileName}</p>
@@ -85,7 +93,6 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
         </div>
       </div>
 
-      {/* Boutons d'action */}
       <div className="flex items-center gap-3">
         <button
           type="button"
