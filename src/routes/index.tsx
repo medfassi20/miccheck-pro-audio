@@ -3,8 +3,7 @@ import { Activity, AudioLines, Gauge, ShieldCheck, Waves } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Pricing } from "@/components/pricing";
-// TODO: Remplace cet import par ton hook réel de gestion d'état/plan si disponible
-import { useAuth } from "@/hooks/use-auth"; 
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -71,8 +70,15 @@ const features = [
 ];
 
 function Landing() {
-  // Récupération de l'état Pro (adapte la variable selon ton store / context)
-  const { isPro } = useAuth?.() || { isPro: false };
+  const [isPro, setIsPro] = useState(false);
+
+  useEffect(() => {
+    // Vérification du statut Pro dans le localStorage (si stocké côté client)
+    const storedPlan = localStorage.getItem("user_plan");
+    if (storedPlan === "pro" || storedPlan === "PRO") {
+      setIsPro(true);
+    }
+  }, []);
 
   return (
     <div className="min-h-screen">
@@ -109,10 +115,9 @@ function Landing() {
               </a>
             </div>
 
-            {/* Affichage conditionnel selon le statut Pro / Free */}
             <p className="mt-4 text-xs text-muted-foreground">
               {isPro ? (
-                <span className="text-emerald-400 font-medium">
+                <span className="font-medium text-emerald-400">
                   ✓ Pro Plan Active • Unlimited analyses
                 </span>
               ) : (
