@@ -16,17 +16,15 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
     if (!reportRef.current) return;
 
     try {
-      // 1. Capture du composant sous forme de Canvas HTML5
       const canvas = await html2canvas(reportRef.current, {
-        scale: 2, // Améliore la résolution du rendu
+        scale: 2, 
         useCORS: true,
         logging: false,
-        backgroundColor: "#090d16", // Maintient le fond sombre de l'app
+        backgroundColor: "#090d16",
       });
 
       const imgData = canvas.toDataURL("image/png");
       
-      // 2. Initialisation du document jsPDF (Format A4)
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
