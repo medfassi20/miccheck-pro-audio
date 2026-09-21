@@ -5,19 +5,23 @@ export function Pricing() {
   const [isPro, setIsPro] = useState<boolean>(false);
 
   useEffect(() => {
-    // Vérifier si le statut Pro est présent dans localStorage OU sessionStorage
     const localPro = localStorage.getItem("miccheck_is_pro") === "true";
     const sessionPro = sessionStorage.getItem("miccheck_is_pro") === "true";
-    
     setIsPro(localPro || sessionPro);
   }, []);
 
-  const handleSwitchToFree = (e: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleSwitchToFree = (e: React.MouseEvent) => {
     e.preventDefault();
-    // Suppression complète du statut Pro
     localStorage.removeItem("miccheck_is_pro");
     sessionStorage.removeItem("miccheck_is_pro");
     setIsPro(false);
+  };
+
+  // Nouvelle fonction pour passer en Pro directement sans payer
+  const handleDirectUpgradeToPro = (e: React.MouseEvent) => {
+    localStorage.setItem("miccheck_is_pro", "true");
+    sessionStorage.setItem("miccheck_is_pro", "true");
+    setIsPro(true);
   };
 
   const tiers = [
@@ -51,7 +55,9 @@ export function Pricing() {
       ],
       cta: isPro ? "Already Subscribed" : "Upgrade to Pro",
       highlight: true,
-      href: isPro ? "/workspace" : "https://miccheckai.gumroad.com/l/pro",
+      // Redirection directe vers le workspace avec le paramètre pro=true
+      href: "/workspace?pro=true",
+      onClick: !isPro ? handleDirectUpgradeToPro : undefined,
     },
   ];
 
@@ -96,8 +102,7 @@ export function Pricing() {
             <a
               href={tier.href}
               onClick={tier.onClick}
-              {...(tier.highlight && !isPro ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-              className={`mt-8 inline-block text-center rounded-xl px-5 py-3 text-sm font-semibold transition-transform hover:-translate-y-0.5 ${
+              className={`mt-8 inline-block text-center rounded-xl px-5 py-3 text-sm font-semibold transition-transform hover:-translate-y-0.5 cursor-pointer ${
                 tier.highlight
                   ? "bg-gradient-primary text-primary-foreground shadow-glow"
                   : "border border-border bg-secondary text-secondary-foreground"
