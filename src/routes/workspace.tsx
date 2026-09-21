@@ -187,14 +187,12 @@ function Workspace() {
                 </span>
                 <span className="text-muted-foreground"> this month. Upgrade to Pro.</span>
               </p>
-              <a
-                href="https://miccheckai.gumroad.com/l/pro"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-              >
-                <Sparkles className="size-3.5" /> Upgrade to Pro for unlimited checks
-              </a>
+              <button
+  onClick={handleDirectUpgradeToPro}
+  className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 cursor-pointer"
+>
+  <Sparkles className="size-3.5" /> Upgrade to Pro for unlimited checks
+</button>
             </>
           )}
         </div>
