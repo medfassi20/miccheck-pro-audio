@@ -1,17 +1,17 @@
 import { useState } from "react";
 import jsPDF from "jspdf";
-import { Download, RefreshCw, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { Download, RefreshCw, Loader2, CheckCircle2, XCircle, Play } from "lucide-react";
 import type { Report } from "@/lib/analysis";
 
 interface AuditReportProps {
   report: Report;
+  audioUrl?: string;
   onReset: () => void;
 }
 
-export function AuditReport({ report, onReset }: AuditReportProps) {
+export function AuditReport({ report, audioUrl, onReset }: AuditReportProps) {
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // 1. Extraire les métriques de votre tableau report.metrics
   const getMetricValue = (id: string) => {
     const metric = report.metrics?.find((m) => m.id === id);
     return metric ? metric.value : "N/A";
@@ -34,7 +34,6 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
         format: "a4",
       });
 
-      // Couleurs
       const primaryColor: [number, number, number] = [15, 23, 42];
       const accentColor: [number, number, number] = [99, 102, 241];
       const textColor: [number, number, number] = [51, 65, 85];
@@ -42,7 +41,6 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
       const passColor: [number, number, number] = [34, 197, 94];
       const failColor: [number, number, number] = [239, 68, 68];
 
-      // En-tête / Header
       pdf.setFillColor(...primaryColor);
       pdf.rect(0, 0, 210, 35, "F");
 
@@ -56,7 +54,6 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
       pdf.text("Voice Quality Audit Report", 15, 26);
       pdf.text(new Date().toLocaleDateString("fr-FR"), 195, 20, { align: "right" });
 
-      // Détails du fichier
       let y = 48;
       pdf.setTextColor(...primaryColor);
       pdf.setFont("helvetica", "bold");
@@ -70,7 +67,6 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
       pdf.text(`File Name: ${report.fileName}`, 15, y);
       pdf.text(`Duration: ${report.duration}`, 120, y);
 
-      // Badge de Verdict (PASS / FAIL)
       y += 12;
       const badgeColor = isPassed ? passColor : failColor;
       pdf.setFillColor(...badgeColor);
@@ -80,10 +76,8 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
       pdf.setFontSize(10);
       pdf.text(isPassed ? "VERDICT: PASS" : "VERDICT: FAIL", 18, y + 6.5);
 
-      // Metriques en Grille
       y += 18;
 
-      // Card 1: Loudness
       pdf.setFillColor(...lightBg);
       pdf.roundedRect(15, y, 85, 30, 3, 3, "F");
       pdf.setFont("helvetica", "bold");
@@ -94,7 +88,6 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
       pdf.setTextColor(...primaryColor);
       pdf.text(lufsVal, 22, y + 22);
 
-      // Card 2: SNR
       pdf.setFillColor(...lightBg);
       pdf.roundedRect(110, y, 85, 30, 3, 3, "F");
       pdf.setFont("helvetica", "bold");
@@ -107,7 +100,6 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
 
       y += 35;
 
-      // Card 3: True Peak
       pdf.setFillColor(...lightBg);
       pdf.roundedRect(15, y, 85, 30, 3, 3, "F");
       pdf.setFont("helvetica", "bold");
@@ -118,7 +110,6 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
       pdf.setTextColor(...primaryColor);
       pdf.text(peakVal, 22, y + 22);
 
-      // Card 4: Voice Activity
       pdf.setFillColor(...lightBg);
       pdf.roundedRect(110, y, 85, 30, 3, 3, "F");
       pdf.setFont("helvetica", "bold");
@@ -129,7 +120,6 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
       pdf.setTextColor(...primaryColor);
       pdf.text(vadVal, 117, y + 22);
 
-      // Résumé / Summary
       y += 40;
       pdf.setTextColor(...primaryColor);
       pdf.setFont("helvetica", "bold");
@@ -144,7 +134,6 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
       const splitSummary = pdf.splitTextToSize(report.summary, 180);
       pdf.text(splitSummary, 15, y);
 
-      // Pied de page / Footer
       pdf.setFontSize(8);
       pdf.setTextColor(148, 163, 184);
       pdf.text(
@@ -185,9 +174,16 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
           </div>
         </div>
 
+        {/* Section Écoute Audio (Affiche le lecteur si disponible) */}
+        {audioUrl && (
+          <div className="mt-4 flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3">
+            <Play className="size-4 text-primary shrink-0" />
+            <audio src={audioUrl} controls className="h-8 w-full" />
+          </div>
+        )}
+
         <p className="mt-3 text-sm text-muted-foreground">{report.summary}</p>
 
-        {/* Grille des Métriques */}
         <div className="mt-6 grid grid-cols-2 gap-4">
           {report.metrics?.map((metric) => (
             <div
@@ -205,7 +201,6 @@ export function AuditReport({ report, onReset }: AuditReportProps) {
         </div>
       </div>
 
-      {/* Actions */}
       <div className="flex items-center gap-3">
         <button
           type="button"
