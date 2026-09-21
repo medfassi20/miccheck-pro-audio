@@ -2,7 +2,7 @@ import React, { useRef } from "react";
 import { Upload, FileAudio } from "lucide-react";
 
 interface UploadZoneProps {
-  onFile: (name: string, size: number) => void;
+  onFile: (name: string, size: number, audioUrl: string) => void;
   disabled?: boolean;
 }
 
@@ -13,8 +13,8 @@ export function UploadZone({ onFile, disabled = false }: UploadZoneProps) {
     if (disabled) return;
     const file = e.target.files?.[0];
     if (file) {
-      onFile(file.name, file.size);
-      // Permet d'uploader à nouveau le même fichier s'il est re-sélectionné
+      const url = URL.createObjectURL(file);
+      onFile(file.name, file.size, url);
       e.target.value = "";
     }
   };
@@ -24,7 +24,8 @@ export function UploadZone({ onFile, disabled = false }: UploadZoneProps) {
     if (disabled) return;
     const file = e.dataTransfer.files?.[0];
     if (file) {
-      onFile(file.name, file.size);
+      const url = URL.createObjectURL(file);
+      onFile(file.name, file.size, url);
     }
   };
 
