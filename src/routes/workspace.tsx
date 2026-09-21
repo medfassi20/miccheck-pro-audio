@@ -34,8 +34,8 @@ export const Route = createFileRoute("/workspace")({
 
 type Stage =
   | { kind: "idle" }
-  | { kind: "analyzing"; file: string; size: number }
-  | { kind: "done"; report: Report };
+  | { kind: "analyzing"; file: string; size: number; audioUrl?: string }
+  | { kind: "done"; report: Report; audioUrl?: string };
 
 function Workspace() {
   const [stage, setStage] = useState<Stage>({ kind: "idle" });
@@ -44,7 +44,6 @@ function Workspace() {
   const [isMounted, setIsMounted] = useState(false);
   const [mode, setMode] = useState<"record" | "upload">("record");
 
-  // Synchronisation au montage : statut Pro et crédits mensuels
   useEffect(() => {
     setIsMounted(true);
 
@@ -94,7 +93,6 @@ function Workspace() {
       }
     }
 
-    // Gestion des crédits gratuits
     const currentMonth = new Date().toISOString().slice(0, 7);
     const savedMonth = localStorage.getItem("miccheck_last_usage_month");
     const rawUsed = localStorage.getItem("miccheck_usage_count");
@@ -109,9 +107,15 @@ function Workspace() {
     }
   }, []);
 
-  const startAnalysis = (name: string, size: number) => {
+  const handleDirectUpgradeToPro = () => {
+    localStorage.setItem("miccheck_is_pro", "true");
+    sessionStorage.setItem("miccheck_is_pro", "true");
+    setIsPro(true);
+  };
+
+  const startAnalysis = (name: string, size: number, audioUrl?: string) => {
     if (isPro) {
-      setStage({ kind: "analyzing", file: name, size });
+      setStage({ kind: "analyzing", file: name, size, audioUrl });
       return;
     }
 
@@ -129,14 +133,13 @@ function Workspace() {
     localStorage.setItem("miccheck_usage_count", nextUsed.toString());
     setRemaining(Math.max(0, 3 - nextUsed));
 
-    setStage({ kind: "analyzing", file: name, size });
+    setStage({ kind: "analyzing", file: name, size, audioUrl });
   };
 
-  // FONCTION FINISH AJOUTÉE & STABILISÉE
   const finish = useCallback(() => {
     if (stage.kind === "analyzing") {
       const report = buildReport(stage.file, stage.size);
-      setStage({ kind: "done", report });
+      setStage({ kind: "done", report, audioUrl: stage.audioUrl });
     }
   }, [stage]);
 
@@ -166,7 +169,6 @@ function Workspace() {
           </span>
         </header>
 
-        {/* Banner de statut */}
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-4">
           {isPro ? (
             <>
@@ -188,11 +190,11 @@ function Workspace() {
                 <span className="text-muted-foreground"> this month. Upgrade to Pro.</span>
               </p>
               <button
-  onClick={handleDirectUpgradeToPro}
-  className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 cursor-pointer"
->
-  <Sparkles className="size-3.5" /> Upgrade to Pro for unlimited checks
-</button>
+                onClick={handleDirectUpgradeToPro}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 cursor-pointer"
+              >
+                <Sparkles className="size-3.5" /> Upgrade to Pro for unlimited checks
+              </button>
             </>
           )}
         </div>
@@ -220,15 +222,15 @@ function Workspace() {
             </div>
             {mode === "record" ? (
               <Recorder
-                onReady={startAnalysis}
+                onReady={(fileName, size, url) => startAnalysis(fileName, size, url)}
                 onReset={() => setStage({ kind: "idle" })}
                 disabled={!isMounted || isLimitReached}
               />
             ) : (
               <UploadZone
                 disabled={!isMounted || isLimitReached}
-                onFile={(name, size) => {
-                  if (isPro || remaining > 0) startAnalysis(name, size);
+                onFile={(name, size, url) => {
+                  if (isPro || remaining > 0) startAnalysis(name, size, url);
                 }}
               />
             )}
@@ -239,6 +241,7 @@ function Workspace() {
         {stage.kind === "done" && (
           <AuditReport
             report={stage.report}
+            audioUrl={stage.audioUrl}
             onReset={() => {
               setMode("record");
               setStage({ kind: "idle" });
