@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Mic, Square, RefreshCw } from "lucide-react";
 
 interface RecorderProps {
-  onReady: (fileName: string, size: number) => void;
+  onReady: (fileName: string, size: number, audioUrl: string) => void;
   onReset?: () => void;
   disabled?: boolean;
 }
@@ -14,15 +14,13 @@ export function Recorder({ onReady, onReset, disabled = false }: RecorderProps) 
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // Nettoyage de la mémoire au démontage du composant
   useEffect(() => {
     return () => {
-      if (audioUrl) URL.revokeObjectURL(audioUrl);
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
     };
-  }, [audioUrl]);
+  }, []);
 
   const startRecording = async () => {
     if (disabled) return;
@@ -38,10 +36,9 @@ export function Recorder({ onReady, onReset, disabled = false }: RecorderProps) 
 
       mediaRecorderRef.current.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        if (audioUrl) URL.revokeObjectURL(audioUrl); // Libère l'ancien URL
         const url = URL.createObjectURL(blob);
         setAudioUrl(url);
-        onReady("live_recording.webm", blob.size);
+        onReady("live_recording.webm", blob.size, url);
       };
 
       mediaRecorderRef.current.start();
