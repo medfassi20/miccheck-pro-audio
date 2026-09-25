@@ -9,8 +9,8 @@ import { Recorder } from "@/components/recorder";
 import { AuditReport } from "@/components/audit-report";
 import { buildReport, type Report } from "@/lib/analysis";
 
-// 🔗 Remplace cette URL par le lien direct de ton produit Gumroad
-const GUMROAD_URL = "https://gumroad.com/l/ton_produit"; 
+// Lien direct d'achat Gumroad
+const GUMROAD_PRO_URL = "https://miccheckai.gumroad.com/l/pro";
 
 export const Route = createFileRoute("/workspace")({
   component: Workspace,
@@ -50,6 +50,7 @@ function Workspace() {
   useEffect(() => {
     setIsMounted(true);
 
+    // Seule cette fonction valide et donne l'accès Pro après achat
     const verifyLicense = async (key: string) => {
       try {
         const res = await fetch("https://api.gumroad.com/v2/licenses/verify", {
@@ -91,8 +92,7 @@ function Workspace() {
       if (savedKey) {
         verifyLicense(savedKey);
       } else {
-        const savedPro = localStorage.getItem("miccheck_is_pro") === "true";
-        setIsPro(savedPro);
+        setIsPro(false);
       }
     }
 
@@ -187,7 +187,7 @@ function Workspace() {
                 <span className="text-muted-foreground"> this month. Upgrade to Pro.</span>
               </p>
               <a
-                href={GUMROAD_URL}
+                href={GUMROAD_PRO_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
