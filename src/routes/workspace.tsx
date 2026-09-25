@@ -14,7 +14,7 @@ const GUMROAD_PRO_URL = "https://miccheckai.gumroad.com/l/pro";
 export const Route = createFileRoute("/workspace")({
   component: Workspace,
   head: () => ({
-    meta: [{ title: "Pro Voice Quality Audit Workspace | MicCheck AI" }],
+    meta: [{ title: "Pro Audio Quality Audit | MicCheck AI" }],
   }),
 });
 
@@ -27,10 +27,11 @@ function Workspace() {
   const [stage, setStage] = useState<Stage>({ kind: "idle" });
   const [mode, setMode] = useState<"record" | "upload">("record");
 
-  // 1. Initialisation synchrone de l'état Pro (évite tout flash de "Free" vers "Pro")
+  // 1. Initialisation synchrone de l'état Pro (supprime tout flash/clignotement)
   const [isPro, setIsPro] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
 
+    // Analyse directe de l'URL d'arrivée (depuis le bouton Gumroad)
     const params = new URLSearchParams(window.location.search);
     const hasGumroadParam =
       params.get("pro") === "true" ||
@@ -71,7 +72,7 @@ function Workspace() {
     return Math.max(0, 3 - used);
   });
 
-  // Nettoyage de l'URL si on vient de Gumroad
+  // Nettoyage discret des paramètres de l'URL sans recharger la page
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
@@ -129,13 +130,11 @@ function Workspace() {
     <div className="min-h-screen">
       <SiteHeader />
       <main className="mx-auto max-w-3xl px-5 py-14">
-        {/* En-tête SEO-friendly */}
+        {/* En-tête SEO-friendly et structuré */}
         <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold md:text-4xl">
-              {isPro
-                ? "Pro Voice Quality Audit Workspace"
-                : "Voice Quality Audit Workspace"}
+              {isPro ? "Pro Audio Quality Audit" : "Voice Quality Audit"}
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
               {isPro
