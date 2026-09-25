@@ -26,12 +26,12 @@ type Stage =
 function Workspace() {
   const [stage, setStage] = useState<Stage>({ kind: "idle" });
   const [mode, setMode] = useState<"record" | "upload">("record");
+  const [mounted, setMounted] = useState<boolean>(false);
 
-  // 1. Initialisation synchrone immédiate de l'état Pro (évite tout flash Free -> Pro)
-  const [isPro] = useState<boolean>(() => {
+  // 1. Initialisation synchrone stricte de l'état Pro
+  const [isPro, setIsPro] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
 
-    // Analyse directe des paramètres de l'URL Gumroad
     const params = new URLSearchParams(window.location.search);
     const hasGumroadParam =
       params.get("pro") === "true" ||
@@ -54,9 +54,10 @@ function Workspace() {
     return localStorage.getItem("miccheck_is_pro") === "true";
   });
 
-  // 2. Initialisation synchrone des quotas pour le mode gratuit
+  // 2. Gestion des quotas
   const [remaining, setRemaining] = useState<number>(() => {
     if (typeof window === "undefined") return 3;
+    if (localStorage.getItem("miccheck_is_pro") === "true") return 999; // Illimité fictif pour les pros
 
     const currentMonth = new Date().toISOString().slice(0, 7);
     const savedMonth = localStorage.getItem("miccheck_last_usage_month");
@@ -72,8 +73,8 @@ function Workspace() {
     return Math.max(0, 3 - used);
   });
 
-  // Nettoyage discret des paramètres de l'URL
   useEffect(() => {
+    setMounted(true);
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     if (
@@ -123,7 +124,6 @@ function Workspace() {
     <div className="min-h-screen">
       <SiteHeader />
       <main className="mx-auto max-w-3xl px-5 py-14">
-        {/* En-tête SEO-friendly, concis et propre */}
         <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold md:text-4xl">
@@ -149,9 +149,11 @@ function Workspace() {
           </div>
         </header>
 
-        {/* Bannière d'état */}
+        {/* Bannière d'état sécurisée anti-flash */}
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-4">
-          {isPro ? (
+          {!mounted ? (
+            <div className="h-6 w-48 animate-pulse rounded bg-primary/20" />
+          ) : isPro ? (
             <p className="flex items-center gap-2 text-sm font-semibold text-primary">
               <CheckCircle2 className="size-4" /> Pro Member — Unlimited voice quality audits active
             </p>
