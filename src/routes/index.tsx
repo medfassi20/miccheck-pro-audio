@@ -70,11 +70,8 @@ const features = [
 ];
 
 function Landing() {
-  // 1. Initialisation SYNCHRONE pour supprimer tout flash au chargement
   const [isPro, setIsPro] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
-
-    // Détection si l'utilisateur arrive directement avec une licence dans l'URL
     const params = new URLSearchParams(window.location.search);
     const hasProParam =
       params.get("pro") === "true" ||
@@ -92,18 +89,18 @@ function Landing() {
       }
       return true;
     }
-
     return localStorage.getItem("miccheck_is_pro") === "true";
   });
 
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
-    // 2. Nettoyage discret de l'URL si des paramètres Gumroad étaient présents
+    setMounted(true);
     const params = new URLSearchParams(window.location.search);
     if (params.get("pro") || params.get("license") || params.get("success")) {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
 
-    // 3. Vérification d'arrière-plan de la licence si elle existe
     const savedKey = localStorage.getItem("miccheck_license_key");
     const savedPro = localStorage.getItem("miccheck_is_pro") === "true";
 
@@ -152,6 +149,7 @@ function Landing() {
               quality audit — SNR, voice activity, true peak and LUFS — and hands back a
               plain-English verdict in seconds.
             </p>
+
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
               <Link
                 to="/workspace"
@@ -159,26 +157,38 @@ function Landing() {
               >
                 Start Live Check
               </Link>
-              {!isPro && (
-                <a
-                  href="#pricing"
-                  className="rounded-xl border border-border bg-secondary px-7 py-3.5 font-semibold text-secondary-foreground transition-transform hover:-translate-y-0.5"
-                >
-                  See pricing
-                </a>
+
+              {/* Masqué par défaut / Squelette tant que le client n'est pas monté pour éviter le flash */}
+              {!mounted ? (
+                <div className="h-12 w-32 rounded-xl bg-secondary/50 animate-pulse" />
+              ) : (
+                !isPro && (
+                  <a
+                    href="#pricing"
+                    className="rounded-xl border border-border bg-secondary px-7 py-3.5 font-semibold text-secondary-foreground transition-transform hover:-translate-y-0.5"
+                  >
+                    See pricing
+                  </a>
+                )
               )}
             </div>
 
-            {/* Texte dynamique selon le statut de l'utilisateur */}
-            <p className="mt-4 text-xs text-muted-foreground">
-              {isPro ? (
-                <span className="inline-flex items-center gap-1.5 font-medium text-emerald-400">
-                  <Sparkles className="size-3.5" /> Pro Plan Active — Unlimited voice analyses
-                </span>
+            {/* Texte dynamique sécurisé contre le flash */}
+            <div className="mt-4 min-h-[20px]">
+              {!mounted ? (
+                <span className="inline-block h-4 w-48 rounded bg-secondary/50 animate-pulse" />
+              ) : isPro ? (
+                <p className="text-xs text-muted-foreground">
+                  <span className="inline-flex items-center gap-1.5 font-medium text-amber-500 dark:text-amber-400">
+                    <Sparkles className="size-3.5" /> Pro Plan Active — Unlimited voice analyses
+                  </span>
+                </p>
               ) : (
-                "3 free analyses every month. No credit card required."
+                <p className="text-xs text-muted-foreground">
+                  3 free analyses every month. No credit card required.
+                </p>
               )}
-            </p>
+            </div>
 
             <div className="mt-16 flex h-24 items-end justify-center gap-1.5">
               {Array.from({ length: 64 }).map((_, i) => (
