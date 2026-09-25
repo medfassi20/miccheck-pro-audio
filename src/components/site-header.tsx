@@ -4,34 +4,35 @@ import { AudioLines, Sparkles } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export function SiteHeader() {
-  // 1. Initialisation SYNCHRONE : Élimine le flash "Try for free" au chargement
-  const [isPro, setIsPro] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-
-    // Vérification prioritaire si un paramètre Gumroad est dans l'URL
-    const params = new URLSearchParams(window.location.search);
-    const hasProParam =
-      params.get("pro") === "true" ||
-      params.get("success") === "true" ||
-      Boolean(params.get("license")) ||
-      Boolean(params.get("license_key"));
-
-    if (hasProParam) return true;
-
-    // Vérification du stockage local et de session
-    const localPro = localStorage.getItem("miccheck_is_pro") === "true";
-    const sessionPro = sessionStorage.getItem("miccheck_is_pro") === "true";
-    return localPro || sessionPro;
-  });
+  const [isPro, setIsPro] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Synchronisation en cas de changement dans d'autres onglets
+    // Étape 1 : Vérification synchrone du statut Pro côté client uniquement
     const checkProStatus = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const hasProUrl =
+        urlParams.get("pro") === "true" ||
+        urlParams.get("success") === "true" ||
+        Boolean(urlParams.get("license")) ||
+        Boolean(urlParams.get("license_key")) ||
+        Boolean(urlParams.get("key"));
+
       const localPro = localStorage.getItem("miccheck_is_pro") === "true";
       const sessionPro = sessionStorage.getItem("miccheck_is_pro") === "true";
-      setIsPro(localPro || sessionPro);
+
+      if (hasProUrl) {
+        localStorage.setItem("miccheck_is_pro", "true");
+        setIsPro(true);
+      } else {
+        setIsPro(localPro || sessionPro);
+      }
     };
 
+    checkProStatus();
+    setMounted(true); // Signale que l'hydratation client est terminée
+
+    // Étape 2 : Écouteur pour les mises à jour en direct
     window.addEventListener("storage", checkProStatus);
     return () => window.removeEventListener("storage", checkProStatus);
   }, []);
@@ -55,18 +56,20 @@ export function SiteHeader() {
           </a>
         </nav>
 
-        {/* Section actions avec le bouton Dark/Light Mode */}
         <div className="flex items-center gap-3">
           <ThemeToggle />
 
-          {/* Affichage instantané selon le statut Pro */}
-          {isPro ? (
+          {/* Rendu conditionnel strict post-hydratation pour bloquer tout flash */}
+          {!mounted ? (
+            // Placeholder invisible de la même taille exacte pendant les 50ms d'hydratation
+            <div className="h-9 w-28 rounded-xl bg-secondary/50 animate-pulse" />
+          ) : isPro ? (
             <Link
               to="/workspace"
               className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2 text-xs font-bold text-amber-600 dark:text-amber-400 shadow-sm transition-all hover:bg-amber-500/20"
             >
               <Sparkles className="size-3.5 text-amber-500" />
-              <span>Pro Access</span>
+              <span>Go to Pro</span>
             </Link>
           ) : (
             <Link
