@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { Sparkles, Zap, CheckCircle2, KeyRound } from "lucide-react";
+import { Sparkles, Zap, CheckCircle2 } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { UploadZone } from "@/components/upload-zone";
@@ -29,8 +29,7 @@ function Workspace() {
   const [isPro, setIsPro] = useState<boolean>(false);
   const [isMounted, setIsMounted] = useState(false);
   const [mode, setMode] = useState<"record" | "upload">("record");
-  
-  // État pour la saisie manuelle de la clé de licence
+
   const [inputKey, setInputKey] = useState("");
   const [keyError, setKeyError] = useState("");
   const [isValidatingKey, setIsValidatingKey] = useState(false);
@@ -72,7 +71,6 @@ function Workspace() {
     if (licenseParam) {
       verifyLicense(licenseParam).then((valid) => {
         if (!valid) {
-          // Si l'API échoue en test, débloquer temporairement via paramètre
           localStorage.setItem("miccheck_is_pro", "true");
           localStorage.setItem("miccheck_license_key", licenseParam);
           setIsPro(true);
@@ -119,7 +117,7 @@ function Workspace() {
       setShowKeyInput(false);
       setInputKey("");
     } else {
-      setKeyError("Clé de licence invalide ou introuvable.");
+      setKeyError("Clé invalide ou introuvable.");
     }
     setIsValidatingKey(false);
   };
@@ -180,47 +178,45 @@ function Workspace() {
           </span>
         </header>
 
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-4">
+        <div className="mb-8 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-4">
           {isPro ? (
             <p className="flex items-center gap-2 text-sm font-semibold text-primary">
               <CheckCircle2 className="size-4" /> Pro Member — Unlimited voice quality audits active
             </p>
           ) : (
-            <>
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-sm">
                   <span className="font-semibold">
                     {isMounted ? remaining : "..."} free analyses remaining
                   </span>
-                  <span className="text-muted-foreground"> this month. Upgrade to Pro.</span>
+                  <span className="text-muted-foreground"> this month.</span>
                 </p>
-              </div>
-              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setShowKeyInput(!showKeyInput)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary px-3 py-2 text-xs font-semibold text-secondary-foreground transition-colors hover:bg-secondary/80"
+                  className="mt-1 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
                 >
-                  <KeyRound className="size-3.5" /> Activer ma clé
+                  {showKeyInput ? "Masquer la saisie" : "Déjà acheté ? Entrer ma clé de licence"}
                 </button>
-                <a
-                  href={GUMROAD_PRO_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-                >
-                  <Sparkles className="size-3.5" /> Upgrade to Pro
-                </a>
               </div>
-            </>
+
+              <a
+                href={GUMROAD_PRO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+              >
+                <Sparkles className="size-3.5" /> Upgrade to Pro
+              </a>
+            </div>
           )}
         </div>
 
-        {/* Formulaire d'activation manuelle de clé */}
         {!isPro && showKeyInput && (
-          <form onSubmit={handleManualKeySubmit} className="mb-8 rounded-2xl border border-border bg-card p-4 shadow-sm">
-            <label htmlFor="license-key-input" className="block text-xs font-semibold text-foreground mb-1.5">
-              Collez la clé de licence reçue par email :
+          <form onSubmit={handleManualKeySubmit} className="mb-8 rounded-xl border border-border bg-card p-4 shadow-sm">
+            <label htmlFor="license-key-input" className="block text-xs font-medium text-muted-foreground mb-2">
+              Clé de licence Gumroad :
             </label>
             <div className="flex gap-2">
               <input
@@ -228,7 +224,7 @@ function Workspace() {
                 type="text"
                 value={inputKey}
                 onChange={(e) => setInputKey(e.target.value)}
-                placeholder="Ex: XXXX-XXXX-XXXX-XXXX"
+                placeholder="Ex: XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX"
                 className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
               <button
@@ -239,7 +235,7 @@ function Workspace() {
                 {isValidatingKey ? "Vérification..." : "Valider"}
               </button>
             </div>
-            {keyError && <p className="mt-2 text-xs font-medium text-destructive">{keyError}</p>}
+            {keyError && <p className="mt-2 text-xs text-destructive">{keyError}</p>}
           </form>
         )}
 
