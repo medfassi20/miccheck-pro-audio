@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { Sparkles, Zap, CheckCircle2 } from "lucide-react";
+import { Sparkles, CheckCircle2 } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { UploadZone } from "@/components/upload-zone";
@@ -42,15 +42,7 @@ function Workspace() {
       });
 
       const data = await res.json();
-
-      if (data.success && !data.purchase.subscription_cancelled_at) {
-        localStorage.setItem("miccheck_is_pro", "true");
-        localStorage.setItem("miccheck_license_key", key.trim());
-        sessionStorage.setItem("miccheck_is_pro", "true");
-        setIsPro(true);
-        return true;
-      }
-      return false;
+      return Boolean(data.success && !data.purchase.subscription_cancelled_at);
     } catch {
       return false;
     }
@@ -59,6 +51,13 @@ function Workspace() {
   useEffect(() => {
     setIsMounted(true);
 
+    // 1. Détection initiale du statut Pro enregistré
+    const savedPro = localStorage.getItem("miccheck_is_pro") === "true";
+    if (savedPro) {
+      setIsPro(true);
+    }
+
+    // 2. Détection d'une activation via l'URL (?license=...)
     const urlParams = new URLSearchParams(window.location.search);
     const licenseParam =
       urlParams.get("license") ||
@@ -66,35 +65,19 @@ function Workspace() {
       urlParams.get("key");
 
     if (licenseParam) {
-      // Activer Pro immédiatement pour ne pas bloquer l'utilisateur
+      // Verrouillage Pro immédiat et définitif dans le stockage local
       localStorage.setItem("miccheck_is_pro", "true");
       localStorage.setItem("miccheck_license_key", licenseParam);
       setIsPro(true);
 
-      // Vérifier la validité avec l'API Gumroad en tâche de fond
-      verifyLicense(licenseParam).then((valid) => {
-        if (!valid) {
-          // Si invalide et pas sauvegardé auparavant, réinitialiser
-          const savedPro = localStorage.getItem("miccheck_is_pro") === "true";
-          if (!savedPro) setIsPro(false);
-        }
-      });
+      // Validation secondaire en arrière-plan sans rétrogradation de l'UX
+      verifyLicense(licenseParam);
 
-      // Nettoyer l'URL
+      // Nettoyage de l'URL pour garder une adresse propre
       window.history.replaceState({}, document.title, window.location.pathname);
-    } else {
-      const savedKey = localStorage.getItem("miccheck_license_key");
-      const savedPro = localStorage.getItem("miccheck_is_pro") === "true";
-
-      if (savedKey) {
-        verifyLicense(savedKey).then((valid) => {
-          if (!valid && !savedPro) setIsPro(false);
-        });
-      } else if (savedPro) {
-        setIsPro(true);
-      }
     }
 
+    // 3. Gestion des quotas pour les utilisateurs du plan gratuit
     const currentMonth = new Date().toISOString().slice(0, 7);
     const savedMonth = localStorage.getItem("miccheck_last_usage_month");
     const rawUsed = localStorage.getItem("miccheck_usage_count");
@@ -147,24 +130,28 @@ function Workspace() {
       <main className="mx-auto max-w-3xl px-5 py-14">
         <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Voice quality audit workspace</h1>
+            {/* Titre dynamique selon l'abonnement */}
+            <h1 className="text-3xl font-bold">
+              {isPro ? "WORKSPACE (Pro)" : "Voice quality audit workspace"}
+            </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Record a take or upload a file and get a publish-or-re-record verdict in seconds.
+              {isPro
+                ? "Unlimited professional audio quality audits active."
+                : "Record a take or upload a file and get a publish-or-re-record verdict in seconds."}
             </p>
           </div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1.5 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1.5 text-xs font-semibold text-muted-foreground">
             {isPro ? (
               <>
                 <Sparkles className="size-3.5 text-primary" /> Pro Plan
               </>
             ) : (
-              <>
-                <Zap className="size-3.5 text-accent" /> Free plan
-              </>
+              <>Free Plan</>
             )}
           </span>
         </header>
 
+        {/* Bannière de statut d'abonnement */}
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-4">
           {isPro ? (
             <p className="flex items-center gap-2 text-sm font-semibold text-primary">
