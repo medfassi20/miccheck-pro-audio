@@ -129,28 +129,34 @@ function Workspace() {
       <SiteHeader />
       <main className="mx-auto max-w-3xl px-5 py-14">
         <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            {/* Titre dynamique selon l'abonnement */}
-            <h1 className="text-3xl font-bold">
-              {isPro ? "WORKSPACE (Pro)" : "Voice quality audit workspace"}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {isPro
-                ? "Unlimited professional audio quality audits active."
-                : "Record a take or upload a file and get a publish-or-re-record verdict in seconds."}
-            </p>
-          </div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1.5 text-xs font-semibold text-muted-foreground">
-            {isPro ? (
-              <>
-                <Sparkles className="size-3.5 text-primary" /> Pro Plan
-              </>
-            ) : (
-              <>Free Plan</>
-            )}
-          </span>
-        </header>
+  <div>
+    {/* Titre SEO-friendly adapté au statut Pro */}
+    <h1 className="text-3xl font-bold md:text-4xl">
+      {isPro ? (
+        <>
+          Pro Voice Quality Audit Workspace
+        </>
+      ) : (
+        "Voice Quality Audit Workspace"
+      )}
+    </h1>
+    <p className="mt-2 text-sm text-muted-foreground">
+      {isPro
+        ? "Unlimited AI audio quality checks active — Analyze background noise, SNR, LUFS, and clipping in seconds."
+        : "Record a take or upload a file and get a publish-or-re-record verdict in seconds."}
+    </p>
+  </div>
 
+  <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1.5 text-xs font-semibold text-primary">
+    {isPro ? (
+      <>
+        <Sparkles className="size-3.5 text-primary" /> Pro Plan Active
+      </>
+    ) : (
+      <>Free Plan</>
+    )}
+  </span>
+</header>
         {/* Bannière de statut d'abonnement */}
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-4">
           {isPro ? (
