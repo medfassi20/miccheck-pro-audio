@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { Sparkles, CheckCircle2 } from "lucide-react";
+import { Sparkles, CheckCircle2, RefreshCw } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { UploadZone } from "@/components/upload-zone";
@@ -14,7 +14,7 @@ const GUMROAD_PRO_URL = "https://miccheckai.gumroad.com/l/pro";
 export const Route = createFileRoute("/workspace")({
   component: Workspace,
   head: () => ({
-    meta: [{ title: "Live Voice Quality Audit Workspace | MicCheck AI" }],
+    meta: [{ title: "Pro Voice Quality Audit Workspace | MicCheck AI" }],
   }),
 });
 
@@ -25,59 +25,38 @@ type Stage =
 
 function Workspace() {
   const [stage, setStage] = useState<Stage>({ kind: "idle" });
-  const [remaining, setRemaining] = useState<number>(3);
-  const [isPro, setIsPro] = useState<boolean>(false);
-  const [isMounted, setIsMounted] = useState(false);
   const [mode, setMode] = useState<"record" | "upload">("record");
 
-  const verifyLicense = async (key: string): Promise<boolean> => {
-    try {
-      const res = await fetch("https://api.gumroad.com/v2/licenses/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          product_id: "1tKyAaR79VgRgEMjGRZjEg==",
-          license_key: key.trim(),
-        }),
-      });
+  // 1. Initialisation synchrone de l'état Pro (évite tout flash de "Free" vers "Pro")
+  const [isPro, setIsPro] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
 
-      const data = await res.json();
-      return Boolean(data.success && !data.purchase.subscription_cancelled_at);
-    } catch {
-      return false;
-    }
-  };
+    const params = new URLSearchParams(window.location.search);
+    const hasGumroadParam =
+      params.get("pro") === "true" ||
+      params.get("success") === "true" ||
+      Boolean(params.get("license")) ||
+      Boolean(params.get("license_key")) ||
+      Boolean(params.get("key"));
 
-  useEffect(() => {
-    setIsMounted(true);
-
-    // 1. Détection initiale du statut Pro enregistré
-    const savedPro = localStorage.getItem("miccheck_is_pro") === "true";
-    if (savedPro) {
-      setIsPro(true);
-    }
-
-    // 2. Détection d'une activation via l'URL (?license=...)
-    const urlParams = new URLSearchParams(window.location.search);
-    const licenseParam =
-      urlParams.get("license") ||
-      urlParams.get("license_key") ||
-      urlParams.get("key");
-
-    if (licenseParam) {
-      // Verrouillage Pro immédiat et définitif dans le stockage local
+    if (hasGumroadParam) {
+      const key =
+        params.get("license") ||
+        params.get("license_key") ||
+        params.get("key") ||
+        "active_subscription";
       localStorage.setItem("miccheck_is_pro", "true");
-      localStorage.setItem("miccheck_license_key", licenseParam);
-      setIsPro(true);
-
-      // Validation secondaire en arrière-plan sans rétrogradation de l'UX
-      verifyLicense(licenseParam);
-
-      // Nettoyage de l'URL pour garder une adresse propre
-      window.history.replaceState({}, document.title, window.location.pathname);
+      localStorage.setItem("miccheck_license_key", key);
+      return true;
     }
 
-    // 3. Gestion des quotas pour les utilisateurs du plan gratuit
+    return localStorage.getItem("miccheck_is_pro") === "true";
+  });
+
+  // 2. Initialisation synchrone des quotas d'essais gratuits
+  const [remaining, setRemaining] = useState<number>(() => {
+    if (typeof window === "undefined") return 3;
+
     const currentMonth = new Date().toISOString().slice(0, 7);
     const savedMonth = localStorage.getItem("miccheck_last_usage_month");
     const rawUsed = localStorage.getItem("miccheck_usage_count");
@@ -85,12 +64,34 @@ function Workspace() {
     if (!savedMonth || savedMonth !== currentMonth) {
       localStorage.setItem("miccheck_last_usage_month", currentMonth);
       localStorage.setItem("miccheck_usage_count", "0");
-      setRemaining(3);
-    } else {
-      const used = parseInt(rawUsed || "0", 10);
-      setRemaining(Math.max(0, 3 - used));
+      return 3;
+    }
+
+    const used = parseInt(rawUsed || "0", 10);
+    return Math.max(0, 3 - used);
+  });
+
+  // Nettoyage de l'URL si on vient de Gumroad
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (
+      params.get("pro") ||
+      params.get("license") ||
+      params.get("license_key") ||
+      params.get("key") ||
+      params.get("success")
+    ) {
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
+
+  // Action : Basculer vers le plan gratuit
+  const returnToFree = () => {
+    localStorage.removeItem("miccheck_is_pro");
+    localStorage.removeItem("miccheck_license_key");
+    setIsPro(false);
+  };
 
   const startAnalysis = (name: string, size: number, audioUrl?: string) => {
     if (isPro) {
@@ -122,42 +123,52 @@ function Workspace() {
     }
   }, [stage]);
 
-  const isLimitReached = isMounted && !isPro && remaining === 0;
+  const isLimitReached = !isPro && remaining === 0;
 
   return (
     <div className="min-h-screen">
       <SiteHeader />
       <main className="mx-auto max-w-3xl px-5 py-14">
+        {/* En-tête SEO-friendly */}
         <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
-  <div>
-    {/* Titre SEO-friendly adapté au statut Pro */}
-    <h1 className="text-3xl font-bold md:text-4xl">
-      {isPro ? (
-        <>
-          Pro Voice Quality Audit Workspace
-        </>
-      ) : (
-        "Voice Quality Audit Workspace"
-      )}
-    </h1>
-    <p className="mt-2 text-sm text-muted-foreground">
-      {isPro
-        ? "Unlimited AI audio quality checks active — Analyze background noise, SNR, LUFS, and clipping in seconds."
-        : "Record a take or upload a file and get a publish-or-re-record verdict in seconds."}
-    </p>
-  </div>
+          <div>
+            <h1 className="text-3xl font-bold md:text-4xl">
+              {isPro
+                ? "Pro Voice Quality Audit Workspace"
+                : "Voice Quality Audit Workspace"}
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {isPro
+                ? "Unlimited AI audio quality checks active — Analyze background noise, SNR, LUFS, and clipping in seconds."
+                : "Record a take or upload a file and get a publish-or-re-record verdict in seconds."}
+            </p>
+          </div>
 
-  <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1.5 text-xs font-semibold text-primary">
-    {isPro ? (
-      <>
-        <Sparkles className="size-3.5 text-primary" /> Pro Plan Active
-      </>
-    ) : (
-      <>Free Plan</>
-    )}
-  </span>
-</header>
-        {/* Bannière de statut d'abonnement */}
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1.5 text-xs font-semibold text-primary">
+              {isPro ? (
+                <>
+                  <Sparkles className="size-3.5 text-primary" /> Pro Plan Active
+                </>
+              ) : (
+                <>Free Plan</>
+              )}
+            </span>
+
+            {isPro && (
+              <button
+                type="button"
+                onClick={returnToFree}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                title="Switch back to free tier"
+              >
+                <RefreshCw className="size-3" /> Return to free plan
+              </button>
+            )}
+          </div>
+        </header>
+
+        {/* Bannière d'état de l'abonnement */}
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-4">
           {isPro ? (
             <p className="flex items-center gap-2 text-sm font-semibold text-primary">
@@ -168,9 +179,9 @@ function Workspace() {
               <div>
                 <p className="text-sm">
                   <span className="font-semibold">
-                    {isMounted ? remaining : "..."} free analyses remaining
+                    {remaining} free {remaining === 1 ? "analysis" : "analyses"} remaining
                   </span>
-                  <span className="text-muted-foreground"> this month. Upgrade to Pro.</span>
+                  <span className="text-muted-foreground"> this month. Upgrade to Pro for unlimited checks.</span>
                 </p>
               </div>
               <a
@@ -210,11 +221,11 @@ function Workspace() {
               <Recorder
                 onReady={(fileName, size, url) => startAnalysis(fileName, size, url)}
                 onReset={() => setStage({ kind: "idle" })}
-                disabled={!isMounted || isLimitReached}
+                disabled={isLimitReached}
               />
             ) : (
               <UploadZone
-                disabled={!isMounted || isLimitReached}
+                disabled={isLimitReached}
                 onFile={(name, size, url) => {
                   if (isPro || remaining > 0) startAnalysis(name, size, url);
                 }}
@@ -223,7 +234,9 @@ function Workspace() {
           </>
         )}
 
-        {stage.kind === "analyzing" && <Analyzing fileName={stage.file} onDone={finish} />}
+        {stage.kind === "analyzing" && (
+          <Analyzing fileName={stage.file} onDone={finish} />
+        )}
         {stage.kind === "done" && (
           <AuditReport
             report={stage.report}
