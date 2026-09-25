@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { Sparkles, CheckCircle2, RotateCcw } from "lucide-react";
+import { Sparkles, CheckCircle2 } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { UploadZone } from "@/components/upload-zone";
@@ -88,18 +88,6 @@ function Workspace() {
     }
   }, []);
 
-  // Fonction pour réinitialiser complètement le statut Pro et repasser en mode Gratuit
-  const handleResetToFree = () => {
-    localStorage.removeItem("miccheck_is_pro");
-    localStorage.removeItem("miccheck_license_key");
-    const currentMonth = new Date().toISOString().slice(0, 7);
-    localStorage.setItem("miccheck_last_usage_month", currentMonth);
-    localStorage.setItem("miccheck_usage_count", "0");
-    
-    setIsPro(false);
-    setRemaining(3);
-  };
-
   const startAnalysis = (name: string, size: number, audioUrl?: string) => {
     if (isPro) {
       setStage({ kind: "analyzing", file: name, size, audioUrl });
@@ -161,24 +149,14 @@ function Workspace() {
           </div>
         </header>
 
-        {/* Bannière d'état sécurisée anti-flash avec option de retour au plan gratuit */}
+        {/* Bannière d'état sécurisée anti-flash */}
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-4">
           {!mounted ? (
             <div className="h-6 w-48 animate-pulse rounded bg-primary/20" />
           ) : isPro ? (
-            <div className="flex w-full items-center justify-between gap-4">
-              <p className="flex items-center gap-2 text-sm font-semibold text-primary">
-                <CheckCircle2 className="size-4" /> Pro Member — Unlimited voice quality audits active
-              </p>
-              <button
-                type="button"
-                onClick={handleResetToFree}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
-                title="Simuler ou basculer vers le plan gratuit"
-              >
-                <RotateCcw className="size-3.5" /> Return to free plan
-              </button>
-            </div>
+            <p className="flex items-center gap-2 text-sm font-semibold text-primary">
+              <CheckCircle2 className="size-4" /> Pro Member — Unlimited voice quality audits active
+            </p>
           ) : (
             <>
               <div>
