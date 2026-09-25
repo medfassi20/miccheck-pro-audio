@@ -72,11 +72,14 @@ const features = [
 function Landing() {
   const [isPro, setIsPro] = useState<boolean>(false);
 
-  // Synchronisation identique au workspace pour vérifier la clé ou le cache local
   useEffect(() => {
+    // 1. Lire d'abord le statut Pro sauvegardé dans le navigateur
     const savedPro = localStorage.getItem("miccheck_is_pro") === "true";
-    setIsPro(savedPro);
+    if (savedPro) {
+      setIsPro(true);
+    }
 
+    // 2. Si une clé existe, on peut la vérifier en arrière-plan SANS supprimer le mode Pro si savedPro était déjà à true
     const savedKey = localStorage.getItem("miccheck_license_key");
     if (savedKey) {
       fetch("https://api.gumroad.com/v2/licenses/verify", {
@@ -92,13 +95,13 @@ function Landing() {
           if (data.success && !data.purchase.subscription_cancelled_at) {
             localStorage.setItem("miccheck_is_pro", "true");
             setIsPro(true);
-          } else {
-            localStorage.removeItem("miccheck_is_pro");
-            localStorage.removeItem("miccheck_license_key");
+          } else if (!savedPro) {
+            // Ne repasser en gratuit que si l'utilisateur n'était pas déjà marqué Pro
             setIsPro(false);
           }
         })
         .catch(() => {
+          // En cas d'erreur réseau, conserver le statut local
           setIsPro(savedPro);
         });
     }
