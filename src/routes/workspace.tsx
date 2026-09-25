@@ -9,6 +9,9 @@ import { Recorder } from "@/components/recorder";
 import { AuditReport } from "@/components/audit-report";
 import { buildReport, type Report } from "@/lib/analysis";
 
+// 🔗 Remplace cette URL par le lien direct de ton produit Gumroad
+const GUMROAD_URL = "https://gumroad.com/l/ton_produit"; 
+
 export const Route = createFileRoute("/workspace")({
   component: Workspace,
   head: () => ({
@@ -107,12 +110,6 @@ function Workspace() {
     }
   }, []);
 
-  const handleDirectUpgradeToPro = () => {
-    localStorage.setItem("miccheck_is_pro", "true");
-    sessionStorage.setItem("miccheck_is_pro", "true");
-    setIsPro(true);
-  };
-
   const startAnalysis = (name: string, size: number, audioUrl?: string) => {
     if (isPro) {
       setStage({ kind: "analyzing", file: name, size, audioUrl });
@@ -189,12 +186,14 @@ function Workspace() {
                 </span>
                 <span className="text-muted-foreground"> this month. Upgrade to Pro.</span>
               </p>
-              <button
-                onClick={handleDirectUpgradeToPro}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 cursor-pointer"
+              <a
+                href={GUMROAD_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
               >
                 <Sparkles className="size-3.5" /> Upgrade to Pro for unlimited checks
-              </button>
+              </a>
             </>
           )}
         </div>
