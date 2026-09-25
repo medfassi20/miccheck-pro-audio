@@ -69,7 +69,7 @@ export function SiteHeader() {
               className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2 text-xs font-bold text-amber-600 dark:text-amber-400 shadow-sm transition-all hover:bg-amber-500/20"
             >
               <Sparkles className="size-3.5 text-amber-500" />
-              <span>Go to Pro</span>
+              <span>Pro Workspace</span>
             </Link>
           ) : (
             <Link
