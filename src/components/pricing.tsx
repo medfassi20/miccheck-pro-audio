@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { Check, Sparkles } from "lucide-react";
 
+// Lien direct vers la page de paiement Gumroad
+const GUMROAD_PRO_URL = "https://miccheckai.gumroad.com/l/pro";
+
 export function Pricing() {
   const [isPro, setIsPro] = useState<boolean>(false);
 
@@ -15,13 +18,6 @@ export function Pricing() {
     localStorage.removeItem("miccheck_is_pro");
     sessionStorage.removeItem("miccheck_is_pro");
     setIsPro(false);
-  };
-
-  // Nouvelle fonction pour passer en Pro directement sans payer
-  const handleDirectUpgradeToPro = (e: React.MouseEvent) => {
-    localStorage.setItem("miccheck_is_pro", "true");
-    sessionStorage.setItem("miccheck_is_pro", "true");
-    setIsPro(true);
   };
 
   const tiers = [
@@ -40,6 +36,7 @@ export function Pricing() {
       highlight: false,
       href: "/workspace",
       onClick: isPro ? handleSwitchToFree : undefined,
+      external: false,
     },
     {
       name: "Pro",
@@ -55,9 +52,9 @@ export function Pricing() {
       ],
       cta: isPro ? "Already Subscribed" : "Upgrade to Pro",
       highlight: true,
-      // Redirection directe vers le workspace avec le paramètre pro=true
-      href: "/workspace?pro=true",
-      onClick: !isPro ? handleDirectUpgradeToPro : undefined,
+      href: isPro ? "/workspace" : GUMROAD_PRO_URL,
+      onClick: undefined,
+      external: !isPro,
     },
   ];
 
@@ -102,6 +99,8 @@ export function Pricing() {
             <a
               href={tier.href}
               onClick={tier.onClick}
+              target={tier.external ? "_blank" : undefined}
+              rel={tier.external ? "noopener noreferrer" : undefined}
               className={`mt-8 inline-block text-center rounded-xl px-5 py-3 text-sm font-semibold transition-transform hover:-translate-y-0.5 cursor-pointer ${
                 tier.highlight
                   ? "bg-gradient-primary text-primary-foreground shadow-glow"
