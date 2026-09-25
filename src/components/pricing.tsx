@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check, Sparkles } from "lucide-react";
 
-// Lien direct vers la page de paiement Gumroad
 const GUMROAD_PRO_URL = "https://miccheckai.gumroad.com/l/pro";
 
 export function Pricing() {
@@ -16,6 +15,7 @@ export function Pricing() {
   const handleSwitchToFree = (e: React.MouseEvent) => {
     e.preventDefault();
     localStorage.removeItem("miccheck_is_pro");
+    localStorage.removeItem("miccheck_license_key");
     sessionStorage.removeItem("miccheck_is_pro");
     setIsPro(false);
   };
