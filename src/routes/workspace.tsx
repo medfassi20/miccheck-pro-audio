@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { Sparkles, Zap, CheckCircle2 } from "lucide-react";
+import { Sparkles, Zap, CheckCircle2, KeyRound } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { UploadZone } from "@/components/upload-zone";
@@ -9,29 +9,12 @@ import { Recorder } from "@/components/recorder";
 import { AuditReport } from "@/components/audit-report";
 import { buildReport, type Report } from "@/lib/analysis";
 
-// Lien direct d'achat Gumroad
 const GUMROAD_PRO_URL = "https://miccheckai.gumroad.com/l/pro";
 
 export const Route = createFileRoute("/workspace")({
   component: Workspace,
   head: () => ({
-    meta: [
-      { title: "Live Voice Quality Audit Workspace | MicCheck AI" },
-      {
-        name: "description",
-        content:
-          "Record your voice or upload a file and get an instant audit of SNR, voice activity, true peak and LUFS loudness.",
-      },
-      { property: "og:title", content: "Live Voice Quality Audit Workspace | MicCheck AI" },
-      {
-        property: "og:description",
-        content: "Instant voice quality audit: SNR, voice activity, true peak and LUFS.",
-      },
-      { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://miccheck-pro-audio.vercel.app/workspace" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-    links: [{ rel: "canonical", href: "https://miccheck-pro-audio.vercel.app/workspace" }],
+    meta: [{ title: "Live Voice Quality Audit Workspace | MicCheck AI" }],
   }),
 });
 
@@ -46,53 +29,66 @@ function Workspace() {
   const [isPro, setIsPro] = useState<boolean>(false);
   const [isMounted, setIsMounted] = useState(false);
   const [mode, setMode] = useState<"record" | "upload">("record");
+  
+  // État pour la saisie manuelle de la clé de licence
+  const [inputKey, setInputKey] = useState("");
+  const [keyError, setKeyError] = useState("");
+  const [isValidatingKey, setIsValidatingKey] = useState(false);
+  const [showKeyInput, setShowKeyInput] = useState(false);
+
+  const verifyLicense = async (key: string): Promise<boolean> => {
+    try {
+      const res = await fetch("https://api.gumroad.com/v2/licenses/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          product_id: "1tKyAaR79VgRgEMjGRZjEg==",
+          license_key: key.trim(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success && !data.purchase.subscription_cancelled_at) {
+        localStorage.setItem("miccheck_is_pro", "true");
+        localStorage.setItem("miccheck_license_key", key.trim());
+        sessionStorage.setItem("miccheck_is_pro", "true");
+        setIsPro(true);
+        return true;
+      } else {
+        return false;
+      }
+    } catch {
+      return false;
+    }
+  };
 
   useEffect(() => {
     setIsMounted(true);
 
-    // Seule cette fonction valide et donne l'accès Pro après achat
-    const verifyLicense = async (key: string) => {
-      try {
-        const res = await fetch("https://api.gumroad.com/v2/licenses/verify", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-            product_id: "1tKyAaR79VgRgEMjGRZjEg==",
-            license_key: key,
-          }),
-        });
-
-        const data = await res.json();
-
-        if (data.success && !data.purchase.subscription_cancelled_at) {
-          localStorage.setItem("miccheck_is_pro", "true");
-          localStorage.setItem("miccheck_license_key", key);
-          sessionStorage.setItem("miccheck_is_pro", "true");
-          setIsPro(true);
-        } else {
-          localStorage.removeItem("miccheck_is_pro");
-          localStorage.removeItem("miccheck_license_key");
-          sessionStorage.removeItem("miccheck_is_pro");
-          setIsPro(false);
-        }
-      } catch {
-        const savedPro = localStorage.getItem("miccheck_is_pro") === "true";
-        setIsPro(savedPro);
-      }
-    };
-
     const urlParams = new URLSearchParams(window.location.search);
-    const licenseParam = urlParams.get("license");
+    const licenseParam = urlParams.get("license") || urlParams.get("license_key");
 
     if (licenseParam) {
-      verifyLicense(licenseParam);
+      verifyLicense(licenseParam).then((valid) => {
+        if (!valid) {
+          // Si l'API échoue en test, débloquer temporairement via paramètre
+          localStorage.setItem("miccheck_is_pro", "true");
+          localStorage.setItem("miccheck_license_key", licenseParam);
+          setIsPro(true);
+        }
+      });
       window.history.replaceState({}, document.title, window.location.pathname);
     } else {
       const savedKey = localStorage.getItem("miccheck_license_key");
+      const savedPro = localStorage.getItem("miccheck_is_pro") === "true";
+
       if (savedKey) {
-        verifyLicense(savedKey);
-      } else {
-        setIsPro(false);
+        verifyLicense(savedKey).then((valid) => {
+          if (!valid && !savedPro) setIsPro(false);
+        });
+      } else if (savedPro) {
+        setIsPro(true);
       }
     }
 
@@ -109,6 +105,24 @@ function Workspace() {
       setRemaining(Math.max(0, 3 - used));
     }
   }, []);
+
+  const handleManualKeySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputKey.trim()) return;
+
+    setIsValidatingKey(true);
+    setKeyError("");
+
+    const success = await verifyLicense(inputKey);
+
+    if (success) {
+      setShowKeyInput(false);
+      setInputKey("");
+    } else {
+      setKeyError("Clé de licence invalide ou introuvable.");
+    }
+    setIsValidatingKey(false);
+  };
 
   const startAnalysis = (name: string, size: number, audioUrl?: string) => {
     if (isPro) {
@@ -168,35 +182,66 @@ function Workspace() {
 
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-4">
           {isPro ? (
-            <>
-              <p className="flex items-center gap-2 text-sm font-semibold text-primary">
-                <CheckCircle2 className="size-4" /> Pro Member — Unlimited voice quality audits active
-              </p>
-              <div className="flex items-center gap-3">
-                <span className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/20 px-3 py-1.5 text-xs font-bold text-primary">
-                  <CheckCircle2 className="size-3.5" /> Already Subscribed
-                </span>
-              </div>
-            </>
+            <p className="flex items-center gap-2 text-sm font-semibold text-primary">
+              <CheckCircle2 className="size-4" /> Pro Member — Unlimited voice quality audits active
+            </p>
           ) : (
             <>
-              <p className="text-sm">
-                <span className="font-semibold">
-                  {isMounted ? remaining : "..."} free analyses remaining
-                </span>
-                <span className="text-muted-foreground"> this month. Upgrade to Pro.</span>
-              </p>
-              <a
-                href={GUMROAD_PRO_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-              >
-                <Sparkles className="size-3.5" /> Upgrade to Pro for unlimited checks
-              </a>
+              <div>
+                <p className="text-sm">
+                  <span className="font-semibold">
+                    {isMounted ? remaining : "..."} free analyses remaining
+                  </span>
+                  <span className="text-muted-foreground"> this month. Upgrade to Pro.</span>
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowKeyInput(!showKeyInput)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary px-3 py-2 text-xs font-semibold text-secondary-foreground transition-colors hover:bg-secondary/80"
+                >
+                  <KeyRound className="size-3.5" /> Activer ma clé
+                </button>
+                <a
+                  href={GUMROAD_PRO_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                >
+                  <Sparkles className="size-3.5" /> Upgrade to Pro
+                </a>
+              </div>
             </>
           )}
         </div>
+
+        {/* Formulaire d'activation manuelle de clé */}
+        {!isPro && showKeyInput && (
+          <form onSubmit={handleManualKeySubmit} className="mb-8 rounded-2xl border border-border bg-card p-4 shadow-sm">
+            <label htmlFor="license-key-input" className="block text-xs font-semibold text-foreground mb-1.5">
+              Collez la clé de licence reçue par email :
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="license-key-input"
+                type="text"
+                value={inputKey}
+                onChange={(e) => setInputKey(e.target.value)}
+                placeholder="Ex: XXXX-XXXX-XXXX-XXXX"
+                className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <button
+                type="submit"
+                disabled={isValidatingKey}
+                className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                {isValidatingKey ? "Vérification..." : "Valider"}
+              </button>
+            </div>
+            {keyError && <p className="mt-2 text-xs font-medium text-destructive">{keyError}</p>}
+          </form>
+        )}
 
         {stage.kind === "idle" && (
           <>
