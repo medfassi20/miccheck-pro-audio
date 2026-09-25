@@ -70,17 +70,43 @@ const features = [
 ];
 
 function Landing() {
-  const [isPro, setIsPro] = useState<boolean>(false);
+  // 1. Initialisation SYNCHRONE pour supprimer tout flash au chargement
+  const [isPro, setIsPro] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
 
-  useEffect(() => {
-    // 1. Lire d'abord le statut Pro sauvegardé dans le navigateur
-    const savedPro = localStorage.getItem("miccheck_is_pro") === "true";
-    if (savedPro) {
-      setIsPro(true);
+    // Détection si l'utilisateur arrive directement avec une licence dans l'URL
+    const params = new URLSearchParams(window.location.search);
+    const hasProParam =
+      params.get("pro") === "true" ||
+      params.get("success") === "true" ||
+      Boolean(params.get("license")) ||
+      Boolean(params.get("license_key"));
+
+    if (hasProParam) {
+      localStorage.setItem("miccheck_is_pro", "true");
+      if (params.get("license") || params.get("license_key")) {
+        localStorage.setItem(
+          "miccheck_license_key",
+          params.get("license") || params.get("license_key") || ""
+        );
+      }
+      return true;
     }
 
-    // 2. Si une clé existe, on peut la vérifier en arrière-plan SANS supprimer le mode Pro si savedPro était déjà à true
+    return localStorage.getItem("miccheck_is_pro") === "true";
+  });
+
+  useEffect(() => {
+    // 2. Nettoyage discret de l'URL si des paramètres Gumroad étaient présents
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("pro") || params.get("license") || params.get("success")) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    // 3. Vérification d'arrière-plan de la licence si elle existe
     const savedKey = localStorage.getItem("miccheck_license_key");
+    const savedPro = localStorage.getItem("miccheck_is_pro") === "true";
+
     if (savedKey) {
       fetch("https://api.gumroad.com/v2/licenses/verify", {
         method: "POST",
@@ -96,12 +122,11 @@ function Landing() {
             localStorage.setItem("miccheck_is_pro", "true");
             setIsPro(true);
           } else if (!savedPro) {
-            // Ne repasser en gratuit que si l'utilisateur n'était pas déjà marqué Pro
+            localStorage.removeItem("miccheck_is_pro");
             setIsPro(false);
           }
         })
         .catch(() => {
-          // En cas d'erreur réseau, conserver le statut local
           setIsPro(savedPro);
         });
     }
