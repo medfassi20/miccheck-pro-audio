@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { Sparkles, CheckCircle2, RefreshCw } from "lucide-react";
+import { Sparkles, CheckCircle2 } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { UploadZone } from "@/components/upload-zone";
@@ -27,11 +27,11 @@ function Workspace() {
   const [stage, setStage] = useState<Stage>({ kind: "idle" });
   const [mode, setMode] = useState<"record" | "upload">("record");
 
-  // 1. Initialisation synchrone de l'état Pro (supprime tout flash/clignotement)
-  const [isPro, setIsPro] = useState<boolean>(() => {
+  // 1. Initialisation synchrone immédiate de l'état Pro (évite tout flash Free -> Pro)
+  const [isPro] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
 
-    // Analyse directe de l'URL d'arrivée (depuis le bouton Gumroad)
+    // Analyse directe des paramètres de l'URL Gumroad
     const params = new URLSearchParams(window.location.search);
     const hasGumroadParam =
       params.get("pro") === "true" ||
@@ -54,7 +54,7 @@ function Workspace() {
     return localStorage.getItem("miccheck_is_pro") === "true";
   });
 
-  // 2. Initialisation synchrone des quotas d'essais gratuits
+  // 2. Initialisation synchrone des quotas pour le mode gratuit
   const [remaining, setRemaining] = useState<number>(() => {
     if (typeof window === "undefined") return 3;
 
@@ -72,7 +72,7 @@ function Workspace() {
     return Math.max(0, 3 - used);
   });
 
-  // Nettoyage discret des paramètres de l'URL sans recharger la page
+  // Nettoyage discret des paramètres de l'URL
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
@@ -86,13 +86,6 @@ function Workspace() {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
-
-  // Action : Basculer vers le plan gratuit
-  const returnToFree = () => {
-    localStorage.removeItem("miccheck_is_pro");
-    localStorage.removeItem("miccheck_license_key");
-    setIsPro(false);
-  };
 
   const startAnalysis = (name: string, size: number, audioUrl?: string) => {
     if (isPro) {
@@ -130,16 +123,16 @@ function Workspace() {
     <div className="min-h-screen">
       <SiteHeader />
       <main className="mx-auto max-w-3xl px-5 py-14">
-        {/* En-tête SEO-friendly et structuré */}
+        {/* En-tête SEO-friendly, concis et propre */}
         <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold md:text-4xl">
-              {isPro ? "Pro Audio Quality Audit" : "Voice Quality Audit"}
+              {isPro ? "Pro Audio Checker" : "Audio Quality Checker"}
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
               {isPro
-                ? "Unlimited AI audio quality checks active — Analyze background noise, SNR, LUFS, and clipping in seconds."
-                : "Record a take or upload a file and get a publish-or-re-record verdict in seconds."}
+                ? "Unlimited AI voice quality analysis — Check background noise, SNR, LUFS, and clipping."
+                : "Record live or upload audio for an instant voice quality analysis."}
             </p>
           </div>
 
@@ -153,21 +146,10 @@ function Workspace() {
                 <>Free Plan</>
               )}
             </span>
-
-            {isPro && (
-              <button
-                type="button"
-                onClick={returnToFree}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-                title="Switch back to free tier"
-              >
-                <RefreshCw className="size-3" /> Return to free plan
-              </button>
-            )}
           </div>
         </header>
 
-        {/* Bannière d'état de l'abonnement */}
+        {/* Bannière d'état */}
         <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-4">
           {isPro ? (
             <p className="flex items-center gap-2 text-sm font-semibold text-primary">
